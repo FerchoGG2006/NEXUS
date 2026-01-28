@@ -1,32 +1,71 @@
 'use client'
 
-import { useState } from 'react'
-import { addDoc, collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { MessageSquare, Send, User, Zap } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { db, getProductos } from '@/lib/firebase'
+import { Send, User, Zap } from 'lucide-react'
+import type { Producto } from '@/types/firestore'
 
 interface SimulatorProps {
     onClose: () => void
 }
 
-const DEMO_PRODUCTS = [
-    { id: 'prod_1', name: 'iPhone 15 Pro Case', price: 29.99 },
-    { id: 'prod_2', name: 'Cable USB-C Premium', price: 12.50 },
-    { id: 'prod_3', name: 'AirPods Pro', price: 249.00 }
-]
-
 export function SalesSimulator({ onClose }: SimulatorProps) {
     const [step, setStep] = useState(1)
     const [isThinking, setIsThinking] = useState(false)
     const [logs, setLogs] = useState<string[]>([])
-    const [selectedProduct, setSelectedProduct] = useState(DEMO_PRODUCTS[0])
+    const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [customerMessage, setCustomerMessage] = useState('')
+    const [products, setProducts] = useState<any[]>([])
+    const [loadingProducts, setLoadingProducts] = useState(true)
 
     const addLog = (msg: string) => setLogs(prev => [...prev, `> ${msg}`])
 
+    // Cargar productos al abrir
+    useEffect(() => {
+        const load = async () => {
+            try {
+                // Si no hay Firebase configurado, cargamos demos para la UI
+                if (!db) {
+                    const demos = [
+                        { id: 'demo1', name: 'Producto Demo 1', price: 99.99, description_ia: 'Demo' },
+                        { id: 'demo2', name: 'Producto Demo 2', price: 49.50, description_ia: 'Demo' }
+                    ]
+                    setProducts(demos)
+                    setSelectedProduct(demos[0])
+                    return
+                }
+
+                const data = await getProductos()
+                const mapped = data.map((p: any) => ({
+                    id: p.id,
+                    name: p.nombre,
+                    price: p.precio_retail,
+                    description_ia: p.descripcion_ia
+                }))
+                setProducts(mapped)
+                if (mapped.length > 0) setSelectedProduct(mapped[0])
+            } catch (e) {
+                console.error("Error loading products", e)
+                addLog('Error cargando productos')
+            } finally {
+                setLoadingProducts(false)
+            }
+        }
+        load()
+    }, [])
+
+
     const startSimulation = async () => {
         if (!db) {
-            addLog('Error: Firebase no está inicializado')
+            addLog('Error: Firebase no está inicializado (Modo Demo)')
+            // Simulación local sin Firebase
+            setIsThinking(true)
+            setTimeout(() => {
+                addLog('✅ IA respondió (Simulado Local)')
+                setIsThinking(false)
+                setStep(2)
+            }, 1000)
             return
         }
 
@@ -57,6 +96,7 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
             addLog('Esperando respuesta de IA...')
 
             // 2. Simular respuesta IA (Si no hay backend real corriendo)
+            // En producción, esto lo haría la Cloud Function. Aquí lo simulamos para feedback instantáneo.
             setTimeout(async () => {
                 const iaResponse = `¡Hola! 👋 Claro que sí. El ${selectedProduct.name} es una excelente elección. Cuesta $${selectedProduct.price}. ¿Te gustaría que te envíe el link de pago?`
 
@@ -108,19 +148,27 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                     {step === 1 && (
                         <>
                             <div className="form-group">
-                                <label className="label">1. Elige un producto</label>
-                                <div className="product-selector">
-                                    {DEMO_PRODUCTS.map(p => (
-                                        <div
-                                            key={p.id}
-                                            className={`product-option ${selectedProduct.id === p.id ? 'active' : ''}`}
-                                            onClick={() => setSelectedProduct(p)}
-                                        >
-                                            <div className="product-name">{p.name}</div>
-                                            <div className="product-price">${p.price}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <label className="label">1. Elige un producto del inventario</label>
+                                {loadingProducts ? (
+                                    <div style={{ padding: '10px', color: '#666' }}>Cargando productos...</div>
+                                ) : products.length === 0 ? (
+                                    <div style={{ padding: '10px', color: 'var(--color-warning)' }}>
+                                        No hay productos. Ve a Inventario para crear uno.
+                                    </div>
+                                ) : (
+                                    <div className="product-selector">
+                                        {products.map(p => (
+                                            <div
+                                                key={p.id}
+                                                className={`product-option ${selectedProduct?.id === p.id ? 'active' : ''}`}
+                                                onClick={() => setSelectedProduct(p)}
+                                            >
+                                                <div className="product-name">{p.name}</div>
+                                                <div className="product-price">${p.price}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group mt-4">
@@ -130,9 +178,10 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                                     <input
                                         type="text"
                                         className="input"
-                                        placeholder={`Hola, precio del ${selectedProduct.name}?`}
+                                        placeholder={selectedProduct ? `Hola, precio del ${selectedProduct.name}?` : "Selecciona un producto..."}
                                         value={customerMessage}
                                         onChange={e => setCustomerMessage(e.target.value)}
+                                        disabled={!selectedProduct}
                                     />
                                 </div>
                             </div>
@@ -202,6 +251,8 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                     display: grid;
                     gap: 8px;
                     margin-top: 8px;
+                    max-height: 200px;
+                    overflow-y: auto;
                 }
 
                 .product-option {

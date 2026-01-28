@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { getConfiguracionIA, updateConfiguracionIA, isFirebaseConfigured } from '@/lib/firebase'
-import { Bot, Save, Key, Bell, Clock, MessageSquare, Sparkles, AlertCircle } from 'lucide-react'
+import { Bot, Save, Key, Bell, Clock, MessageSquare, Sparkles, AlertCircle, BookOpen, Plus, Trash2, HelpCircle } from 'lucide-react'
+
+interface QAItem {
+    pregunta: string
+    respuesta: string
+}
 
 interface ConfiguracionIA {
     nombre_tienda: string
@@ -19,6 +24,7 @@ interface ConfiguracionIA {
     notificar_email: string
     notificar_whatsapp: string
     openai_api_key: string
+    knowledge_base: QAItem[]
 }
 
 const defaultConfig: ConfiguracionIA = {
@@ -43,7 +49,12 @@ REGLAS:
     respuesta_fuera_horario: 'Gracias por tu mensaje. Nuestro horario de atención es de 9am a 9pm. Te responderemos mañana.',
     notificar_email: '',
     notificar_whatsapp: '',
-    openai_api_key: ''
+    openai_api_key: '',
+    knowledge_base: [
+        { pregunta: '¿Tienen tienda física?', respuesta: 'Somos una tienda 100% online, hacemos envíos a todo el país.' },
+        { pregunta: '¿Cuánto tarda el envío?', respuesta: 'Los envíos toman de 2 a 4 días hábiles en ciudades principales.' },
+        { pregunta: '¿Qué medios de pago aceptan?', respuesta: 'Aceptamos transferencias bancarias, Nequi, Daviplata y tarjetas de crédito.' }
+    ]
 }
 
 export default function ConfiguracionIAPage() {
@@ -52,6 +63,9 @@ export default function ConfiguracionIAPage() {
     const [isSaving, setIsSaving] = useState(false)
     const [showApiKey, setShowApiKey] = useState(false)
     const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null)
+
+    // Estado local para el formulario de nueva QA
+    const [newQA, setNewQA] = useState<QAItem>({ pregunta: '', respuesta: '' })
 
     useEffect(() => {
         loadConfig()
@@ -62,6 +76,7 @@ export default function ConfiguracionIAPage() {
         if (isFirebaseConfigured()) {
             const data = await getConfiguracionIA()
             if (data) {
+                // Merge con default para asegurar que existan los nuevos campos como knowledge_base
                 setConfig({ ...defaultConfig, ...data } as ConfiguracionIA)
             }
         }
@@ -87,6 +102,22 @@ export default function ConfiguracionIAPage() {
 
     const updateField = (field: keyof ConfiguracionIA, value: any) => {
         setConfig(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleAddQA = () => {
+        if (!newQA.pregunta.trim() || !newQA.respuesta.trim()) return
+        setConfig(prev => ({
+            ...prev,
+            knowledge_base: [...(prev.knowledge_base || []), newQA]
+        }))
+        setNewQA({ pregunta: '', respuesta: '' })
+    }
+
+    const handleDeleteQA = (index: number) => {
+        setConfig(prev => ({
+            ...prev,
+            knowledge_base: prev.knowledge_base.filter((_, i) => i !== index)
+        }))
     }
 
     if (isLoading) {
@@ -197,20 +228,103 @@ export default function ConfiguracionIAPage() {
                                 {showApiKey ? 'Ocultar' : 'Mostrar'}
                             </button>
                         </div>
-                        <p className="form-help">Obtén tu API Key en platform.openai.com</p>
+                        <p className="form-help">Tu agente funciona con GPT-4o. Pega tu key aquí.</p>
+                    </div>
+                </section>
+
+                {/* Base de Conocimiento (NUEVO) */}
+                <section className="card config-section full-width">
+                    <div className="config-section-header">
+                        <BookOpen style={{ width: '24px', height: '24px', color: 'var(--color-accent-violet)' }} />
+                        <h2>Base de Conocimiento IA</h2>
+                    </div>
+
+                    <p className="section-description">
+                        Enséñale a tu IA sobre políticas, envíos y garantías. Estas respuestas tendrán prioridad sobre el conocimiento general.
+                    </p>
+
+                    <div className="qa-container">
+                        <div className="qa-list">
+                            {config.knowledge_base?.map((qa, index) => (
+                                <div key={index} className="qa-item">
+                                    <div className="qa-content">
+                                        <div className="qa-question">
+                                            <HelpCircle size={16} /> <span>{qa.pregunta}</span>
+                                        </div>
+                                        <div className="qa-answer">{qa.respuesta}</div>
+                                    </div>
+                                    <button
+                                        className="btn btn--ghost btn--icon delete-qa"
+                                        onClick={() => handleDeleteQA(index)}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!config.knowledge_base || config.knowledge_base.length === 0) && (
+                                <div className="qa-empty">No hay preguntas frecuentes configuradas.</div>
+                            )}
+                        </div>
+
+                        <div className="qa-form">
+                            <input
+                                type="text"
+                                className="input"
+                                placeholder="Pregunta (ej: ¿Tienen garantía?)"
+                                value={newQA.pregunta}
+                                onChange={e => setNewQA(prev => ({ ...prev, pregunta: e.target.value }))}
+                            />
+                            <input
+                                type="text"
+                                className="input"
+                                placeholder="Respuesta de la IA"
+                                value={newQA.respuesta}
+                                onChange={e => setNewQA(prev => ({ ...prev, respuesta: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && handleAddQA()}
+                            />
+                            <button
+                                className="btn btn--secondary"
+                                onClick={handleAddQA}
+                                disabled={!newQA.pregunta || !newQA.respuesta}
+                            >
+                                <Plus size={18} /> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Prompt del Sistema */}
+                <section className="card config-section full-width">
+                    <div className="config-section-header">
+                        <Sparkles style={{ width: '24px', height: '24px', color: 'var(--color-secondary)' }} />
+                        <h2>Instrucciones Avanzadas (Prompt)</h2>
+                    </div>
+
+                    <div className="form-row">
+                        <label className="label">System Prompt</label>
+                        <textarea
+                            className="input"
+                            rows={10}
+                            value={config.prompt_sistema}
+                            onChange={(e) => updateField('prompt_sistema', e.target.value)}
+                            style={{ fontFamily: 'monospace', fontSize: 'var(--font-size-sm)' }}
+                        />
+                        <p className="form-help">
+                            Define reglas estrictas, personalidad y límites del agente.
+                        </p>
                     </div>
                 </section>
 
                 {/* Mensajes Predefinidos */}
-                <section className="card config-section" style={{ gridColumn: '1 / -1' }}>
+                <section className="card config-section full-width">
                     <div className="config-section-header">
                         <MessageSquare style={{ width: '24px', height: '24px', color: 'var(--color-accent-cyan)' }} />
-                        <h2>Mensajes Predefinidos</h2>
+                        <h2>Respuestas Automáticas</h2>
                     </div>
 
                     <div className="form-grid-2">
                         <div className="form-row">
-                            <label className="label">Mensaje de Bienvenida</label>
+                            <label className="label">Bienvenida</label>
                             <textarea
                                 className="input"
                                 rows={3}
@@ -220,7 +334,7 @@ export default function ConfiguracionIAPage() {
                         </div>
 
                         <div className="form-row">
-                            <label className="label">Mensaje Sin Stock</label>
+                            <label className="label">Sin Stock</label>
                             <textarea
                                 className="input"
                                 rows={3}
@@ -230,7 +344,7 @@ export default function ConfiguracionIAPage() {
                         </div>
 
                         <div className="form-row">
-                            <label className="label">Mensaje Pago Recibido</label>
+                            <label className="label">Pago Recibido</label>
                             <textarea
                                 className="input"
                                 rows={3}
@@ -240,7 +354,7 @@ export default function ConfiguracionIAPage() {
                         </div>
 
                         <div className="form-row">
-                            <label className="label">Respuesta Fuera de Horario</label>
+                            <label className="label">Fuera de Horario</label>
                             <textarea
                                 className="input"
                                 rows={3}
@@ -251,29 +365,7 @@ export default function ConfiguracionIAPage() {
                     </div>
                 </section>
 
-                {/* Prompt del Sistema */}
-                <section className="card config-section" style={{ gridColumn: '1 / -1' }}>
-                    <div className="config-section-header">
-                        <Sparkles style={{ width: '24px', height: '24px', color: 'var(--color-secondary)' }} />
-                        <h2>Instrucciones del Agente (Prompt)</h2>
-                    </div>
-
-                    <div className="form-row">
-                        <label className="label">Prompt del Sistema</label>
-                        <textarea
-                            className="input"
-                            rows={10}
-                            value={config.prompt_sistema}
-                            onChange={(e) => updateField('prompt_sistema', e.target.value)}
-                            style={{ fontFamily: 'monospace', fontSize: 'var(--font-size-sm)' }}
-                        />
-                        <p className="form-help">
-                            Estas instrucciones definen cómo se comporta el agente IA. Sé específico sobre el tono, las reglas y el flujo de venta.
-                        </p>
-                    </div>
-                </section>
-
-                {/* Horario de Atención */}
+                {/* Horario y Notificaciones (En grid de 2 columnas) */}
                 <section className="card config-section">
                     <div className="config-section-header">
                         <Clock style={{ width: '24px', height: '24px', color: 'var(--color-accent-emerald)' }} />
@@ -282,7 +374,7 @@ export default function ConfiguracionIAPage() {
 
                     <div className="form-grid-2">
                         <div className="form-row">
-                            <label className="label">Hora de Inicio</label>
+                            <label className="label">Inicio</label>
                             <input
                                 type="time"
                                 className="input"
@@ -291,7 +383,7 @@ export default function ConfiguracionIAPage() {
                             />
                         </div>
                         <div className="form-row">
-                            <label className="label">Hora de Fin</label>
+                            <label className="label">Fin</label>
                             <input
                                 type="time"
                                 className="input"
@@ -300,42 +392,37 @@ export default function ConfiguracionIAPage() {
                             />
                         </div>
                     </div>
-                    <p className="form-help">Fuera de este horario, el agente enviará la respuesta automática configurada.</p>
                 </section>
 
-                {/* Notificaciones */}
                 <section className="card config-section">
                     <div className="config-section-header">
                         <Bell style={{ width: '24px', height: '24px', color: 'var(--color-accent-rose)' }} />
-                        <h2>Notificaciones</h2>
+                        <h2>Alertas</h2>
                     </div>
 
                     <div className="form-row">
-                        <label className="label">Email para Notificaciones</label>
+                        <label className="label">Email Reportes</label>
                         <input
                             type="email"
                             className="input"
                             value={config.notificar_email}
                             onChange={(e) => updateField('notificar_email', e.target.value)}
-                            placeholder="tu@email.com"
                         />
                     </div>
 
                     <div className="form-row">
-                        <label className="label">WhatsApp para Notificaciones</label>
+                        <label className="label">WhatsApp Alertas</label>
                         <input
                             type="tel"
                             className="input"
                             value={config.notificar_whatsapp}
                             onChange={(e) => updateField('notificar_whatsapp', e.target.value)}
-                            placeholder="+57 300 123 4567"
                         />
                     </div>
-                    <p className="form-help">Recibirás alertas cuando se cierre una venta o haya un problema.</p>
                 </section>
             </div>
 
-            <style>{`
+            <style jsx>{`
                 .config-grid {
                     display: grid;
                     grid-template-columns: repeat(2, 1fr);
@@ -344,13 +431,19 @@ export default function ConfiguracionIAPage() {
 
                 .config-section {
                     padding: var(--space-6);
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .config-section.full-width {
+                    grid-column: 1 / -1;
                 }
 
                 .config-section-header {
                     display: flex;
                     align-items: center;
                     gap: var(--space-3);
-                    margin-bottom: var(--space-6);
+                    margin-bottom: var(--space-4);
                     padding-bottom: var(--space-4);
                     border-bottom: 1px solid var(--color-border);
                 }
@@ -361,12 +454,14 @@ export default function ConfiguracionIAPage() {
                     color: var(--color-text-primary);
                 }
 
-                .form-row {
-                    margin-bottom: var(--space-5);
+                .section-description {
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-muted);
+                    margin-bottom: var(--space-4);
                 }
 
-                .form-row:last-child {
-                    margin-bottom: 0;
+                .form-row {
+                    margin-bottom: var(--space-5);
                 }
 
                 .form-help {
@@ -386,16 +481,90 @@ export default function ConfiguracionIAPage() {
                     min-height: 80px;
                 }
 
+                /* QA Styles */
+                .qa-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--space-4);
+                }
+
+                .qa-list {
+                    background: var(--color-bg-tertiary);
+                    border-radius: var(--radius-md);
+                    border: 1px solid var(--color-border);
+                    overflow: hidden;
+                }
+
+                .qa-item {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    padding: var(--space-3) var(--space-4);
+                    border-bottom: 1px solid var(--color-border);
+                    gap: var(--space-4);
+                }
+
+                .qa-item:last-child {
+                    border-bottom: none;
+                }
+
+                .qa-content {
+                    flex: 1;
+                }
+
+                .qa-question {
+                    font-weight: 600;
+                    color: var(--color-text-primary);
+                    margin-bottom: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .qa-question svg {
+                     color: var(--color-accent-violet);
+                }
+
+                .qa-answer {
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
+                }
+                
+                .delete-qa {
+                    color: var(--color-text-muted);
+                }
+                .delete-qa:hover {
+                    color: var(--color-danger);
+                    background: rgba(239, 68, 68, 0.1);
+                }
+
+                .qa-form {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr auto;
+                    gap: var(--space-3);
+                    align-items: center;
+                    background: rgba(255,255,255,0.02);
+                    padding: var(--space-4);
+                    border-radius: var(--radius-md);
+                    border: 1px solid var(--color-border);
+                }
+
+                .qa-empty {
+                    padding: var(--space-4);
+                    text-align: center;
+                    color: var(--color-text-muted);
+                    font-style: italic;
+                }
+
+
                 @media (max-width: 1024px) {
                     .config-grid {
                         grid-template-columns: 1fr;
                     }
-
-                    .config-section[style*="grid-column"] {
-                        grid-column: 1 !important;
+                    .config-section.full-width {
+                         grid-column: 1;
                     }
-
-                    .form-grid-2 {
+                    .qa-form {
                         grid-template-columns: 1fr;
                     }
                 }

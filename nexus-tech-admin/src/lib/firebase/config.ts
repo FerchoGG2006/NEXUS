@@ -24,6 +24,12 @@ export const isFirebaseConfigured = () => {
 // Inicializar Firebase solo si está configurado
 const app = getApps().length > 0 ? getApp() : (isFirebaseConfigured() ? initializeApp(firebaseConfig) : null)
 
-export const db = app ? getFirestore(app) : null
+// Configuración robusta de Firestore para evitar timeouts locales
+import { initializeFirestore } from 'firebase/firestore'
+
+export const db = app ? initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true, // Fuerza modo polling si websockets falla
+}) : null
+
 export const auth = app ? getAuth(app) : null
 export { app }

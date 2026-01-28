@@ -88,33 +88,60 @@ export default function DashboardPage() {
     const loadData = async () => {
         setIsLoading(true)
 
-        if (!isFirebaseConfigured()) {
+        // Si no hay configuración o hay error de conexión, usamos el modo DEMO/OFFLINE para no romper la UI
+        const activateDemoMode = () => {
+            console.warn('⚠️ Activando Modo Demo/Offline por problemas de conexión a Firebase.')
+            setMetrics(demoMetrics)
+            setConversaciones(demoConversaciones)
+            setPedidos(demoPedidos)
             setIsDemo(true)
             setIsLoading(false)
+        }
+
+        if (!isFirebaseConfigured()) {
+            activateDemoMode()
             return
         }
 
         try {
+            // Intentar cargar métricas con el timeout que implementamos en firestore.ts
+            const metricsData = await getMetricasDashboard()
+
+            // Si metricsData viene vacío (por el timeout), activamos demo parcial si queremos, 
+            // pero mejor mostramos ceros reales si la respuesta fue un objeto de ceros válido.
+            // Si es null, es error grave.
+            if (!metricsData) {
+                throw new Error('No se pudieron cargar las métricas (Timeout o Error)')
+            }
+
+            setMetrics(metricsData as Metrics)
             setIsDemo(false)
 
-            // Cargar métricas
-            const metricsData = await getMetricasDashboard()
-            if (metricsData) setMetrics(metricsData as Metrics)
+            // Suscripciones con manejo de errores (no bloqueantes)
+            try {
+                // Conversaciones
+                const unsubConv = subscribeToConversaciones((data) => {
+                    setConversaciones(data.slice(0, 5) as Conversacion[])
+                })
 
-            // Suscribirse a conversaciones en tiempo real
-            subscribeToConversaciones((data) => {
-                setConversaciones(data.slice(0, 5) as Conversacion[])
-            })
+                // Pedidos
+                const unsubPending = subscribeToPedidosDespacho((data) => {
+                    setPedidos(data.filter((p: any) => p.estado === 'pendiente').slice(0, 5) as PedidoDespacho[])
+                }, 'pendiente')
 
-            // Suscribirse a pedidos en tiempo real
-            subscribeToPedidosDespacho((data) => {
-                setPedidos(data.filter((p: any) => p.estado === 'pendiente').slice(0, 5) as PedidoDespacho[])
-            }, 'pendiente')
+                // Limpieza al desmontar (opcional en este scope, pero buena práctica)
+                // En este caso useEffect vacío ya maneja montaje único, pero idealmente deberíamos guardar los unsubs.
+            } catch (subError) {
+                console.warn('Error en suscripciones realtime:', subError)
+                // No fallar toda la página por esto, las suscripciones suelen reintentar solas
+            }
 
         } catch (error) {
-            console.error('Error loading dashboard:', error)
+            console.error('Error loading dashboard (Critical):', error)
+            activateDemoMode() // Fallback a Demo si falla la carga inicial crítica
+        } finally {
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     if (isLoading) {

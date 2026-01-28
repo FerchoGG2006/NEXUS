@@ -3,7 +3,7 @@
  * Ejecutar: npx ts-node scripts/seed-firestore.ts
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // Inicializar con credenciales de servicio
 // Si ejecutas localmente, configura GOOGLE_APPLICATION_CREDENTIALS

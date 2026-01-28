@@ -59,36 +59,55 @@ function convertTimestamps(data: Record<string, unknown>): Record<string, unknow
 // OPERACIONES CRUD GENÉRICAS
 // ============================================
 
+// Timeout Helper para evitar UI bloqueada
+const withTimeout = <T>(promise: Promise<T>, ms: number = 2000, fallback: T): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((resolve) => setTimeout(() => {
+            console.warn('⚠️ Firestore timeout - devolviendo fallback local')
+            resolve(fallback)
+        }, ms))
+    ])
+}
+
 export async function getAll<T>(collectionName: string, constraints: QueryConstraint[] = []): Promise<T[]> {
     if (!db || !isFirebaseConfigured()) return []
 
-    try {
-        const q = query(collection(db, collectionName), ...constraints)
-        const snapshot = await getDocs(q)
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...convertTimestamps(doc.data()),
-        })) as T[]
-    } catch (error) {
-        console.error(`Error getting ${collectionName}:`, error)
-        return []
+    const fetchOp = async () => {
+        try {
+            const q = query(collection(db!, collectionName), ...constraints)
+            const snapshot = await getDocs(q)
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...convertTimestamps(doc.data()),
+            })) as T[]
+        } catch (error) {
+            console.error(`Error getting ${collectionName}:`, error)
+            return []
+        }
     }
+
+    return withTimeout(fetchOp(), 2000, [])
 }
 
 export async function getById<T>(collectionName: string, id: string): Promise<T | null> {
     if (!db || !isFirebaseConfigured()) return null
 
-    try {
-        const docRef = doc(db, collectionName, id)
-        const docSnap = await getDoc(docRef)
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as T
+    const fetchOp = async () => {
+        try {
+            const docRef = doc(db!, collectionName, id)
+            const docSnap = await getDoc(docRef)
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as T
+            }
+            return null
+        } catch (error) {
+            console.error(`Error getting ${collectionName}/${id}:`, error)
+            return null
         }
-        return null
-    } catch (error) {
-        console.error(`Error getting ${collectionName}/${id}:`, error)
-        return null
     }
+
+    return withTimeout(fetchOp(), 2000, null)
 }
 
 export async function create<T>(collectionName: string, data: Omit<T, 'id'>): Promise<string | null> {
@@ -252,62 +271,79 @@ export async function marcarComoEntregado(pedidoId: string) {
 // MÉTRICAS DEL DASHBOARD
 // ============================================
 
+// ============================================
+// MÉTRICAS DEL DASHBOARD
+// ============================================
+
 export async function getMetricasDashboard() {
     if (!db || !isFirebaseConfigured()) return null
 
-    try {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-
-        // Productos
-        const productosSnap = await getDocs(collection(db, COLLECTIONS.PRODUCTOS))
-        const productos = productosSnap.docs.map(d => d.data())
-        const stockCritico = productos.filter((p: any) => p.stock <= (p.stock_minimo || 10)).length
-
-        // Conversaciones activas
-        const convActivas = await getDocs(query(
-            collection(db, COLLECTIONS.CONVERSACIONES),
-            where('estado', 'in', ['activa', 'negociando', 'esperando_pago'])
-        ))
-
-        // Pedidos pendientes
-        const pedidosPendientes = await getDocs(query(
-            collection(db, COLLECTIONS.PEDIDOS_DESPACHO),
-            where('estado', '==', 'pendiente')
-        ))
-
-        // Ventas totales (todos los pedidos)
-        const todosLosPedidos = await getDocs(collection(db, COLLECTIONS.PEDIDOS_DESPACHO))
-        let totalVentas = 0
-        let gananciaNeta = 0
-        todosLosPedidos.forEach(doc => {
-            const data = doc.data()
-            totalVentas += data.total || 0
-            gananciaNeta += data.ganancia_neta || 0
-        })
-
-        // Afiliados activos
-        const afiliadosSnap = await getDocs(query(
-            collection(db, COLLECTIONS.AFILIADOS),
-            where('activo', '==', true)
-        ))
-
-        return {
-            ganancia_neta_total: gananciaNeta,
-            total_ventas: totalVentas,
-            numero_transacciones: todosLosPedidos.size,
-            conversaciones_activas: convActivas.size,
-            pedidos_pendientes: pedidosPendientes.size,
-            productos_stock_critico: stockCritico,
-            afiliados_activos: afiliadosSnap.size,
-            ventas_retail: totalVentas * 0.4,  // Placeholder
-            ventas_b2b: totalVentas * 0.35,
-            ventas_afiliados: totalVentas * 0.25
-        }
-    } catch (error) {
-        console.error('Error getting dashboard metrics:', error)
-        return null
+    // Fallback con ceros
+    const metricasCero = {
+        ganancia_neta_total: 0,
+        total_ventas: 0,
+        numero_transacciones: 0,
+        conversaciones_activas: 0,
+        pedidos_pendientes: 0,
+        productos_stock_critico: 0,
+        afiliados_activos: 0,
+        ventas_retail: 0,
+        ventas_b2b: 0,
+        ventas_afiliados: 0
     }
+
+    const fetchOp = async () => {
+        try {
+            const hoy = new Date()
+            hoy.setHours(0, 0, 0, 0)
+
+            // Ejecutar todas las consultas EN PARALELO para máxima velocidad
+            const [
+                productosSnap,
+                convActivasSnap,
+                pedidosPendientesSnap,
+                todosLosPedidosSnap,
+                afiliadosSnap
+            ] = await Promise.all([
+                getDocs(collection(db!, COLLECTIONS.PRODUCTOS)),
+                getDocs(query(collection(db!, COLLECTIONS.CONVERSACIONES), where('estado', 'in', ['activa', 'negociando', 'esperando_pago']))),
+                getDocs(query(collection(db!, COLLECTIONS.PEDIDOS_DESPACHO), where('estado', '==', 'pendiente'))),
+                getDocs(collection(db!, COLLECTIONS.PEDIDOS_DESPACHO)),
+                getDocs(query(collection(db!, COLLECTIONS.AFILIADOS), where('activo', '==', true)))
+            ])
+
+            // Procesar datos en memoria (muy rápido)
+            const productos = productosSnap.docs.map(d => d.data())
+            const stockCritico = productos.filter((p: any) => p.stock <= (p.stock_minimo || 10)).length
+
+            let totalVentas = 0
+            let gananciaNeta = 0
+            todosLosPedidosSnap.forEach(doc => {
+                const data = doc.data()
+                totalVentas += data.total || 0
+                gananciaNeta += data.ganancia_neta || 0
+            })
+
+            return {
+                ganancia_neta_total: gananciaNeta,
+                total_ventas: totalVentas,
+                numero_transacciones: todosLosPedidosSnap.size,
+                conversaciones_activas: convActivasSnap.size,
+                pedidos_pendientes: pedidosPendientesSnap.size,
+                productos_stock_critico: stockCritico,
+                afiliados_activos: afiliadosSnap.size,
+                ventas_retail: totalVentas * 0.4,
+                ventas_b2b: totalVentas * 0.35,
+                ventas_afiliados: totalVentas * 0.25
+            }
+        } catch (error) {
+            console.error('Error getting dashboard metrics:', error)
+            return metricasCero
+        }
+    }
+
+    // Timeout máximo de 2.5 segundos para todo el dashboard
+    return withTimeout(fetchOp(), 2500, metricasCero)
 }
 
 export async function getVentas(limite?: number) {

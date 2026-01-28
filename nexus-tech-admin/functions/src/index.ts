@@ -93,6 +93,14 @@ async function getOpenAIClient(): Promise<OpenAI> {
 // ============================================
 
 function buildSystemPrompt(producto: Producto, config: any): string {
+    // Construir Base de Conocimiento
+    let knowledgeBaseText = '';
+    if (config.knowledge_base && Array.isArray(config.knowledge_base)) {
+        knowledgeBaseText = config.knowledge_base.map((qa: any) =>
+            `- P: ${qa.pregunta}\n  R: ${qa.respuesta}`
+        ).join('\n');
+    }
+
     return `Eres el vendedor virtual de ${config.nombre_tienda || 'Nexus Tech'}. Tu nombre es "Nexus Assistant".
 
 REGLAS IMPORTANTES:
@@ -105,6 +113,10 @@ REGLAS IMPORTANTES:
 7. Una vez tengas los datos, envía el link de pago.
 8. Si envían comprobante de pago, confirma la recepción y agradece.
 
+BASE DE CONOCIMIENTO (FAQ Y POLÍTICAS):
+Usa esta información para responder preguntas específicas sobre envíos, garantías, etc.
+${knowledgeBaseText}
+
 PRODUCTO EN CONSULTA:
 - Nombre: ${producto.nombre}
 - Descripción: ${producto.descripcion_ia}
@@ -115,7 +127,7 @@ PRODUCTO EN CONSULTA:
 ${producto.stock === 0 ? 'IMPORTANTE: El producto está agotado. Ofrece agregarlo a lista de espera.' : ''}
 
 FLUJO DE VENTA:
-1. Responder consultas sobre el producto
+1. Responder consultas sobre el producto (usando descripción y FAQ)
 2. Si hay interés, preguntar: "¿Te gustaría que te envíe el link de pago?"
 3. Solicitar datos de envío: nombre, dirección completa, ciudad, teléfono
 4. Enviar link de pago personalizado

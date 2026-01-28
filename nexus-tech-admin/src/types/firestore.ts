@@ -110,6 +110,10 @@ interface ConfiguracionIA {
     notificar_email: string
     notificar_whatsapp: string
     openai_api_key: string          // Encriptada
+    knowledge_base: {               // FAQs y políticas
+        pregunta: string
+        respuesta: string
+    }[]
 }
 
 /*

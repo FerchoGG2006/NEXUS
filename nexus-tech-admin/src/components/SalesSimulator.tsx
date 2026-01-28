@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore'
-import { db, getProductos } from '@/lib/firebase'
-import { Send, User, Zap } from 'lucide-react'
+import { db, getProductos, getConfiguracionIA } from '@/lib/firebase'
+import { Send, User, Zap, BookOpen } from 'lucide-react'
 import type { Producto } from '@/types/firestore'
 
 interface SimulatorProps {
@@ -18,13 +18,20 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
     const [customerMessage, setCustomerMessage] = useState('')
     const [products, setProducts] = useState<any[]>([])
     const [loadingProducts, setLoadingProducts] = useState(true)
+    const [aiConfig, setAiConfig] = useState<any>(null)
 
     const addLog = (msg: string) => setLogs(prev => [...prev, `> ${msg}`])
 
-    // Cargar productos al abrir
+    // Cargar productos y configuración al abrir
     useEffect(() => {
         const load = async () => {
             try {
+                // Cargar Configuración IA para tener la base de conocimiento en la simulación
+                if (db) {
+                    const config = await getConfiguracionIA()
+                    setAiConfig(config)
+                }
+
                 // Si no hay Firebase configurado, cargamos demos para la UI
                 if (!db) {
                     const demos = [
@@ -95,10 +102,33 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
             addLog(`Conversación creada: ${convRef.id}`)
             addLog('Esperando respuesta de IA...')
 
-            // 2. Simular respuesta IA (Si no hay backend real corriendo)
-            // En producción, esto lo haría la Cloud Function. Aquí lo simulamos para feedback instantáneo.
+            // 2. Simular respuesta IA (Inteligente Local)
             setTimeout(async () => {
-                const iaResponse = `¡Hola! 👋 Claro que sí. El ${selectedProduct.name} es una excelente elección. Cuesta $${selectedProduct.price}. ¿Te gustaría que te envíe el link de pago?`
+                let iaResponse = ''
+
+                // A) Buscar en Base de Conocimiento (Simulación Básica de Coincidencias)
+                const msgLower = (customerMessage || '').toLowerCase()
+                let foundAnswer = false
+
+                if (aiConfig?.knowledge_base) {
+                    for (const qa of aiConfig.knowledge_base) {
+                        // Buscamos palabras clave simples de la pregunta en el mensaje del usuario
+                        const palabrasClave = qa.pregunta.toLowerCase().replace(/[¿?]/g, '').split(' ').filter((w: string) => w.length > 3)
+                        const coincide = palabrasClave.some((p: string) => msgLower.includes(p))
+
+                        if (coincide) {
+                            iaResponse = qa.respuesta
+                            foundAnswer = true
+                            addLog('💡 IA encontró respuesta en Base de Conocimiento')
+                            break
+                        }
+                    }
+                }
+
+                // B) Si no hay match en KB, responder con Venta de Producto
+                if (!foundAnswer) {
+                    iaResponse = `¡Hola! 👋 Claro que sí. El ${selectedProduct.name} es una excelente elección. Cuesta $${selectedProduct.price}. ${selectedProduct.description_ia ? selectedProduct.description_ia.substring(0, 50) + '...' : ''} ¿Te gustaría que te envíe el link de pago?`
+                }
 
                 // Actualizar documento para simular respuesta
                 const convDoc = doc(db as any, 'conversaciones', convRef.id)

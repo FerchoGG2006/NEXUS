@@ -1,18 +1,18 @@
 /**
  * NEXUS AUTO-SALES
- * Agente de Ventas IA - Firebase Cloud Functions
+ * Central de Integraciones & Inteligencia Artificial
  * 
- * Este módulo maneja:
- * 1. Webhooks de FB/IG/WhatsApp
- * 2. Procesamiento de mensajes con GPT-4o
- * 3. Gestión de conversaciones en Firestore
- * 4. Cierre de ventas y notificaciones
+ * Arquitectura:
+ * 1. Webhooks (Meta/ML) -> Reciben evento HTTP -> Guardan en 'mensajes_entrantes'
+ * 2. Trigger (Firestore) -> Detecta nuevo mensaje -> Llama a GPT-4o -> Genera Respuesta
+ * 3. Sender (API) -> Envía respuesta a la plataforma correspondiente
  */
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
 import cors from 'cors';
+// import axios from 'axios';
 
 // Inicializar Firebase Admin
 admin.initializeApp();
@@ -21,389 +21,81 @@ const db = admin.firestore();
 const corsHandler = cors({ origin: true });
 
 // ============================================
-// INTERFACES
+// HELPERS Y CONFIGURACIÓN
 // ============================================
-
-interface MensajeChat {
-    rol: 'cliente' | 'ia' | 'sistema';
-    contenido: string;
-    timestamp: string;
-}
-
-interface DatosEnvio {
-    nombre_completo: string;
-    direccion: string;
-    ciudad: string;
-    codigo_postal?: string;
-    telefono: string;
-    notas?: string;
-}
-
-interface Conversacion {
-    id?: string;
-    cliente_id: string;
-    cliente_nombre: string;
-    cliente_telefono: string;
-    cliente_email?: string;
-    plataforma: string;
-    producto_interes_id: string;
-    producto_nombre: string;
-    estado: 'activa' | 'negociando' | 'esperando_pago' | 'cerrada' | 'abandonada';
-    historial_chat: MensajeChat[];
-    datos_envio?: DatosEnvio;
-    pago_confirmado: boolean;
-    comprobante_url?: string;
-    total_venta?: number;
-    created_at: string;
-    updated_at: string;
-}
-
-interface Producto {
-    id?: string;
-    nombre: string;
-    descripcion_ia: string;
-    precio_retail: number;
-    stock: number;
-    link_pago_base: string;
-    costo_compra: number;
-}
-
-// ============================================
-// CONFIGURACIÓN OPENAI
-// ============================================
-
-let openaiClient: OpenAI | null = null;
 
 async function getOpenAIClient(): Promise<OpenAI> {
-    if (openaiClient) return openaiClient;
-
     const configDoc = await db.collection('configuracion_ia').doc('default').get();
     const config = configDoc.data();
-
-    if (!config?.openai_api_key) {
-        throw new Error('OpenAI API Key no configurada');
-    }
-
-    openaiClient = new OpenAI({ apiKey: config.openai_api_key });
-    return openaiClient;
+    if (!config?.openai_api_key) throw new Error('OpenAI API Key no configurada');
+    return new OpenAI({ apiKey: config.openai_api_key });
 }
 
 // ============================================
-// PROMPT DEL AGENTE DE VENTAS
+// 1. WEBHOOKS PÚBLICOS (ENTRADA)
 // ============================================
 
-function buildSystemPrompt(producto: Producto, config: any): string {
-    // Construir Base de Conocimiento
-    let knowledgeBaseText = '';
-    if (config.knowledge_base && Array.isArray(config.knowledge_base)) {
-        knowledgeBaseText = config.knowledge_base.map((qa: any) =>
-            `- P: ${qa.pregunta}\n  R: ${qa.respuesta}`
-        ).join('\n');
-    }
-
-    return `Eres el vendedor virtual de ${config.nombre_tienda || 'Nexus Tech'}. Tu nombre es "Nexus Assistant".
-
-REGLAS IMPORTANTES:
-1. Tu tono es ${config.tono_vendedor || 'profesional y amigable'}.
-2. NUNCA reveles que eres una IA. Actúa como un vendedor humano.
-3. Sé persuasivo pero no agresivo. Responde de forma natural y breve.
-4. Si el cliente pregunta por un producto, proporciona información útil.
-5. Si el cliente muestra interés, guíalo hacia la compra.
-6. Para cerrar la venta, solicita: nombre completo, dirección de envío, ciudad y teléfono.
-7. Una vez tengas los datos, envía el link de pago.
-8. Si envían comprobante de pago, confirma la recepción y agradece.
-
-BASE DE CONOCIMIENTO (FAQ Y POLÍTICAS):
-Usa esta información para responder preguntas específicas sobre envíos, garantías, etc.
-${knowledgeBaseText}
-
-PRODUCTO EN CONSULTA:
-- Nombre: ${producto.nombre}
-- Descripción: ${producto.descripcion_ia}
-- Precio: $${producto.precio_retail.toFixed(2)} USD
-- Disponibilidad: ${producto.stock > 0 ? `${producto.stock} unidades disponibles` : 'AGOTADO'}
-- Link de pago: ${producto.link_pago_base}
-
-${producto.stock === 0 ? 'IMPORTANTE: El producto está agotado. Ofrece agregarlo a lista de espera.' : ''}
-
-FLUJO DE VENTA:
-1. Responder consultas sobre el producto (usando descripción y FAQ)
-2. Si hay interés, preguntar: "¿Te gustaría que te envíe el link de pago?"
-3. Solicitar datos de envío: nombre, dirección completa, ciudad, teléfono
-4. Enviar link de pago personalizado
-5. Esperar comprobante y confirmar venta
-
-Responde siempre en español y de forma concisa (máximo 2-3 oraciones por mensaje).`;
-}
-
-// ============================================
-// FUNCIÓN PRINCIPAL: PROCESAR MENSAJE
-// ============================================
-
-export const procesarMensaje = functions.https.onRequest((req, res) => {
+// Webhook Unificado para Meta (WhatsApp, Instagram, Messenger)
+export const webhookMeta = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        try {
-            // Validar método
-            if (req.method !== 'POST') {
-                res.status(405).json({ error: 'Método no permitido' });
-                return;
-            }
-
-            const {
-                cliente_id,
-                cliente_nombre,
-                cliente_telefono,
-                plataforma,
-                producto_id,
-                mensaje,
-                conversacion_id
-            } = req.body;
-
-            // Validar datos requeridos
-            if (!cliente_id || !mensaje) {
-                res.status(400).json({ error: 'Datos incompletos' });
-                return;
-            }
-
-            // Log del webhook
-            await db.collection('webhooks_log').add({
-                plataforma: plataforma || 'api',
-                payload: req.body,
-                procesado: false,
-                created_at: new Date().toISOString()
-            });
-
-            // Obtener o crear conversación
-            let conversacion: Conversacion;
-            let conversacionRef: admin.firestore.DocumentReference;
-
-            if (conversacion_id) {
-                conversacionRef = db.collection('conversaciones').doc(conversacion_id);
-                const convDoc = await conversacionRef.get();
-                if (!convDoc.exists) {
-                    res.status(404).json({ error: 'Conversación no encontrada' });
-                    return;
-                }
-                conversacion = convDoc.data() as Conversacion;
-            } else {
-                // Buscar conversación activa del cliente
-                const convQuery = await db.collection('conversaciones')
-                    .where('cliente_id', '==', cliente_id)
-                    .where('estado', 'in', ['activa', 'negociando', 'esperando_pago'])
-                    .orderBy('created_at', 'desc')
-                    .limit(1)
-                    .get();
-
-                if (!convQuery.empty) {
-                    conversacionRef = convQuery.docs[0].ref;
-                    conversacion = convQuery.docs[0].data() as Conversacion;
-                } else {
-                    // Crear nueva conversación
-                    const producto = producto_id
-                        ? (await db.collection('productos').doc(producto_id).get()).data() as Producto
-                        : null;
-
-                    conversacion = {
-                        cliente_id,
-                        cliente_nombre: cliente_nombre || 'Cliente',
-                        cliente_telefono: cliente_telefono || '',
-                        plataforma: plataforma || 'web',
-                        producto_interes_id: producto_id || '',
-                        producto_nombre: producto?.nombre || 'Consulta general',
-                        estado: 'activa',
-                        historial_chat: [],
-                        pago_confirmado: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    };
-
-                    conversacionRef = await db.collection('conversaciones').add(conversacion);
-                }
-            }
-
-            // Agregar mensaje del cliente al historial
-            const mensajeCliente: MensajeChat = {
-                rol: 'cliente',
-                contenido: mensaje,
-                timestamp: new Date().toISOString()
-            };
-            conversacion.historial_chat.push(mensajeCliente);
-
-            // Obtener producto para contexto
-            let producto: Producto | null = null;
-            if (conversacion.producto_interes_id) {
-                const prodDoc = await db.collection('productos').doc(conversacion.producto_interes_id).get();
-                if (prodDoc.exists) {
-                    producto = { id: prodDoc.id, ...prodDoc.data() } as Producto;
-                }
-            }
-
-            // Obtener configuración IA
-            const configDoc = await db.collection('configuracion_ia').doc('default').get();
-            const config = configDoc.exists ? configDoc.data() : {};
-
-            // Generar respuesta con OpenAI
-            const openai = await getOpenAIClient();
-
-            // Construir mensajes para GPT
-            const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-                {
-                    role: 'system',
-                    content: producto
-                        ? buildSystemPrompt(producto, config)
-                        : `Eres el asistente de ventas de ${config?.nombre_tienda || 'Nexus Tech'}. Ayuda al cliente con sus consultas.`
-                },
-                // Agregar historial de chat
-                ...conversacion.historial_chat.map(msg => ({
-                    role: msg.rol === 'cliente' ? 'user' as const : 'assistant' as const,
-                    content: msg.contenido
-                }))
-            ];
-
-            const completion = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages,
-                max_tokens: 300,
-                temperature: 0.7
-            });
-
-            const respuestaIA = completion.choices[0].message.content || 'Lo siento, hubo un error. ¿Podrías repetir tu pregunta?';
-
-            // Agregar respuesta IA al historial
-            const mensajeIA: MensajeChat = {
-                rol: 'ia',
-                contenido: respuestaIA,
-                timestamp: new Date().toISOString()
-            };
-            conversacion.historial_chat.push(mensajeIA);
-
-            // Detectar intención de compra y actualizar estado
-            const mensajeLower = mensaje.toLowerCase();
-            if (mensajeLower.includes('comprar') || mensajeLower.includes('me interesa') || mensajeLower.includes('cuánto')) {
-                conversacion.estado = 'negociando';
-            }
-
-            // Detectar datos de envío en el mensaje (análisis básico)
-            if (conversacion.estado === 'negociando' &&
-                (mensajeLower.includes('calle') || mensajeLower.includes('dirección') || mensajeLower.includes('enviar a'))) {
-                conversacion.estado = 'esperando_pago';
-            }
-
-            // Detectar comprobante de pago
-            if (mensajeLower.includes('comprobante') || mensajeLower.includes('pagué') || mensajeLower.includes('transferí')) {
-                conversacion.estado = 'cerrada';
-                conversacion.pago_confirmado = true;
-
-                // Crear pedido de despacho
-                if (producto) {
-                    await db.collection('pedidos_despacho').add({
-                        conversacion_id: conversacionRef.id,
-                        cliente_datos: conversacion.datos_envio || {
-                            nombre_completo: conversacion.cliente_nombre,
-                            telefono: conversacion.cliente_telefono,
-                            direccion: 'Pendiente confirmar',
-                            ciudad: 'Pendiente confirmar'
-                        },
-                        producto_id: producto.id,
-                        producto_nombre: producto.nombre,
-                        cantidad: 1,
-                        precio_unitario: producto.precio_retail,
-                        total: producto.precio_retail,
-                        costo_total: producto.costo_compra,
-                        ganancia_neta: producto.precio_retail - producto.costo_compra,
-                        comprobante_url: '',
-                        plataforma: conversacion.plataforma,
-                        estado: 'pendiente',
-                        created_at: new Date().toISOString()
-                    });
-
-                    // Actualizar stock
-                    await db.collection('productos').doc(producto.id!).update({
-                        stock: admin.firestore.FieldValue.increment(-1),
-                        updated_at: new Date().toISOString()
-                    });
-                }
-            }
-
-            // Guardar conversación actualizada
-            await conversacionRef.update({
-                historial_chat: conversacion.historial_chat,
-                estado: conversacion.estado,
-                pago_confirmado: conversacion.pago_confirmado,
-                updated_at: new Date().toISOString()
-            });
-
-            // Actualizar log como procesado
-            await db.collection('webhooks_log')
-                .where('created_at', '>=', new Date(Date.now() - 5000).toISOString())
-                .limit(1)
-                .get()
-                .then(snapshot => {
-                    if (!snapshot.empty) {
-                        snapshot.docs[0].ref.update({
-                            procesado: true,
-                            respuesta_ia: respuestaIA
-                        });
-                    }
-                });
-
-            res.status(200).json({
-                success: true,
-                conversacion_id: conversacionRef.id,
-                respuesta: respuestaIA,
-                estado: conversacion.estado
-            });
-
-        } catch (error: any) {
-            console.error('Error procesando mensaje:', error);
-            res.status(500).json({
-                error: 'Error interno',
-                message: error.message
-            });
-        }
-    });
-});
-
-// ============================================
-// WEBHOOK: FACEBOOK MESSENGER
-// ============================================
-
-export const webhookFacebook = functions.https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-        // Verificación del webhook (GET request de Meta)
+        // A) Verificación del Token (Handshake inicial)
         if (req.method === 'GET') {
             const mode = req.query['hub.mode'];
             const token = req.query['hub.verify_token'];
             const challenge = req.query['hub.challenge'];
 
-            if (mode === 'subscribe' && token === process.env.FB_VERIFY_TOKEN) {
+            // Usamos un token fijo 'nexus_secure_token' o variable de entorno
+            if (mode === 'subscribe' && token === (process.env.META_VERIFY_TOKEN || 'nexus_secure_token')) {
                 res.status(200).send(challenge);
-                return;
+            } else {
+                res.status(403).send('Forbidden');
             }
-            res.status(403).send('Forbidden');
             return;
         }
 
-        // Procesar mensaje (POST request)
+        // B) Recepción de Mensajes (POST)
         try {
             const body = req.body;
 
-            if (body.object === 'page') {
-                for (const entry of body.entry) {
-                    const webhookEvent = entry.messaging?.[0];
-                    if (webhookEvent?.message) {
-                        // Log del mensaje recibido
-                        console.log('FB Message from:', webhookEvent.sender.id);
-                        console.log('Message text:', webhookEvent.message.text);
+            // Log para debug
+            console.log('Meta Webhook Payload:', JSON.stringify(body, null, 2));
 
-                        // Guardar en webhooks_log para procesamiento
-                        await db.collection('webhooks_log').add({
-                            plataforma: 'facebook',
-                            payload: webhookEvent,
-                            sender_id: webhookEvent.sender.id,
-                            message_text: webhookEvent.message.text,
-                            procesado: false,
-                            created_at: new Date().toISOString()
+            // Extraer mensaje (Estructura genérica de Meta)
+            if (body.object) {
+                let entry = body.entry?.[0];
+                let changes = entry?.changes?.[0]?.value || entry?.messaging?.[0]; // WhatsApp vs Messenger
+
+                // WhatsApp Business API Specifics
+                if (body.object === 'whatsapp_business_account') {
+                    const message = changes?.messages?.[0];
+                    const contact = changes?.contacts?.[0];
+
+                    if (message && message.type === 'text') {
+                        // Guardar en cola de procesamiento
+                        await db.collection('mensajes_entrantes').add({
+                            plataforma: 'whatsapp',
+                            mensaje_id: message.id,
+                            sender_id: message.from,
+                            sender_name: contact?.profile?.name || 'Cliente WhatsApp',
+                            texto: message.text.body,
+                            timestamp: new Date().toISOString(),
+                            procesado: false
+                        });
+                    }
+                }
+                // Facebook / Instagram
+                else if (body.object === 'page' || body.object === 'instagram') {
+                    // Lógica similar para Messenger/IG (simplificada para demo)
+                    const event = entry?.messaging?.[0];
+                    if (event?.message?.text) {
+                        await db.collection('mensajes_entrantes').add({
+                            plataforma: body.object === 'instagram' ? 'instagram' : 'facebook',
+                            mensaje_id: event.message.mid,
+                            sender_id: event.sender.id,
+                            sender_name: 'Usuario Meta', // FB no manda nombre directo en webhook
+                            texto: event.message.text,
+                            timestamp: new Date().toISOString(),
+                            procesado: false
                         });
                     }
                 }
@@ -411,47 +103,199 @@ export const webhookFacebook = functions.https.onRequest((req, res) => {
 
             res.status(200).send('EVENT_RECEIVED');
         } catch (error) {
-            console.error('Error webhook Facebook:', error);
+            console.error('Error procesando webhook Meta:', error);
+            res.status(500).send('Error interno');
+        }
+    });
+});
+
+// Webhook para MercadoLibre
+export const webhookMercadoLibre = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        try {
+            const { topic, resource, user_id } = req.body;
+            console.log('ML Webhook:', topic, resource);
+
+            if (topic === 'questions') {
+                // Guardar la notificación para que el procesador vaya a buscar la pregunta a la API de ML
+                await db.collection('mensajes_entrantes').add({
+                    plataforma: 'mercadolibre',
+                    tipo: 'pregunta',
+                    resource_id: resource, // ej: /questions/123456
+                    user_id,
+                    timestamp: new Date().toISOString(),
+                    procesado: false
+                });
+            }
+
+            res.status(200).send('OK');
+        } catch (error) {
+            console.error('Error webhook ML:', error);
             res.status(500).send('Error');
         }
     });
 });
 
 // ============================================
-// FUNCIÓN: NOTIFICAR VENTA CERRADA
+// 2. TRIGGER DE PROCESAMIENTO (CEREBRO IA)
+// ============================================
+
+export const procesarMensajeEntrante = functions.firestore
+    .document('mensajes_entrantes/{msgId}')
+    .onCreate(async (snap, context) => {
+        const payload = snap.data();
+        if (payload.procesado) return;
+
+        try {
+            let textoUsuario = payload.texto;
+            let clienteNombre = payload.sender_name;
+            let clienteId = payload.sender_id;
+
+            // Para MercadoLibre, necesitamos hacer fetch extra (Mockeado para MVP)
+            if (payload.plataforma === 'mercadolibre') {
+                // Aquí iría axios.get(`https://api.mercadolibre.com${payload.resource_id}`)
+                // Como no tenemos token real aún, simulamos:
+                textoUsuario = "¿Tienen stock disponible del iPhone?";
+                clienteNombre = "Usuario ML";
+                clienteId = payload.user_id;
+            }
+
+            // 1. Buscar o Crear Conversación en NEXUS
+            let conversacionId = '';
+            const convQuery = await db.collection('conversaciones')
+                .where('cliente_id', '==', clienteId)
+                .where('plataforma', '==', payload.plataforma)
+                .where('estado', 'in', ['activa', 'negociando', 'esperando_pago'])
+                .limit(1)
+                .get();
+
+            let historialChat: any[] = [];
+            let conversacionData: any = {};
+
+            if (!convQuery.empty) {
+                const convDoc = convQuery.docs[0];
+                conversacionId = convDoc.id;
+                conversacionData = convDoc.data();
+                historialChat = conversacionData.historial_chat || [];
+            } else {
+                // Nueva Conversación
+                const nuevaConv = {
+                    cliente_id: clienteId,
+                    cliente_nombre: clienteNombre,
+                    plataforma: payload.plataforma,
+                    estado: 'activa',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    historial_chat: [],
+                    producto_nombre: 'Consulta General', // Idealmente inferir del contexto
+                    pago_confirmado: false
+                };
+                const ref = await db.collection('conversaciones').add(nuevaConv);
+                conversacionId = ref.id;
+                conversacionData = nuevaConv;
+            }
+
+            // 2. Agregar mensaje del usuario
+            historialChat.push({
+                rol: 'cliente',
+                contenido: textoUsuario,
+                timestamp: new Date().toISOString()
+            });
+
+            // 3. Consultar a GPT-4o
+            const configDoc = await db.collection('configuracion_ia').doc('default').get();
+            const config = configDoc.data() || {};
+
+            // Construir Prompt Simplificado
+            let systemPrompt = `Eres Nexus Assistant, vendedor experto de ${config.nombre_tienda || 'la tienda'}. 
+            Responde corto y persuasivo. Tu objetivo es cerrar la venta.`;
+
+            if (config.knowledge_base) {
+                const faqs = config.knowledge_base.map((qa: any) => `P: ${qa.pregunta} R: ${qa.respuesta}`).join('\n');
+                systemPrompt += `\nUsa esta info:\n${faqs}`;
+            }
+
+            const openai = await getOpenAIClient();
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...historialChat.map(m => ({
+                        role: (m.rol === 'cliente' ? 'user' : 'assistant') as 'user' | 'assistant',
+                        content: m.contenido
+                    }))
+                ],
+                max_tokens: 150
+            });
+
+            const respuestaIA = completion.choices[0].message.content || "Lo siento, ¿puedes repetir?";
+
+            // 4. Guardar respuesta en Conversación
+            historialChat.push({
+                rol: 'ia',
+                contenido: respuestaIA,
+                timestamp: new Date().toISOString()
+            });
+
+            let nuevoEstado = conversacionData.estado;
+            // Detección simple de intención (se puede mejorar mucho)
+            if (respuestaIA.includes('link de pago') || textoUsuario.toLowerCase().includes('comprar')) {
+                nuevoEstado = 'negociando';
+            }
+
+            await db.collection('conversaciones').doc(conversacionId).update({
+                historial_chat: historialChat,
+                updated_at: new Date().toISOString(),
+                estado: nuevoEstado,
+                ultimo_mensaje: respuestaIA
+            });
+
+            // 5. ENVIAR RESPUESTA A LA PLATAFORMA (Output)
+            // Aquí iría la llamada a axios.post('https://graph.facebook.com/v18.0/messages'...)
+            // Lo dejamos comentado como TODO para integración final
+            console.log(`>>> ENVIANDO RESPUESTA A ${payload.plataforma}: ${respuestaIA}`);
+
+            // Marcar mensaje entrante como procesado
+            await snap.ref.update({ procesado: true, respuesta_generada: respuestaIA });
+
+        } catch (error) {
+            console.error('Error en procesarMensajeEntrante:', error);
+        }
+    });
+
+// Mantener endpoint HTTP para pruebas manuales desde Postman/Frontend Simulator
+export const procesarMensajeManual = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        // Envolver lógica de simulador web
+        // Simplemente guarda en 'mensajes_entrantes' y deja que el trigger haga el trabajo
+        try {
+            const { mensaje, cliente_id, plataforma } = req.body;
+            await db.collection('mensajes_entrantes').add({
+                plataforma: plataforma || 'web',
+                texto: mensaje,
+                sender_id: cliente_id || 'web-user',
+                sender_name: 'Usuario Web',
+                timestamp: new Date().toISOString(),
+                procesado: false
+            });
+            res.json({ success: true, message: 'Mensaje encolado para IA' });
+        } catch (e: any) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+});
+
+// ============================================
+// FUNCIONES NOTIFICACIÓN Y ESTADÍSTICAS (LEGACY)
 // ============================================
 
 export const notificarVentaCerrada = functions.firestore
     .document('pedidos_despacho/{pedidoId}')
-    .onCreate(async (snap, context) => {
+    .onCreate(async (snap) => {
         const pedido = snap.data();
-
-        // Obtener configuración para futuras notificaciones
-        const configDoc = await db.collection('configuracion_ia').doc('default').get();
-        const configData = configDoc.data();
-        console.log('Config loaded:', configData?.nombre_tienda || 'Nexus Tech');
-
-        // Log de notificación
-        console.log(`🎉 Nueva venta cerrada por IA!
-            Producto: ${pedido.producto_nombre}
-            Cliente: ${pedido.cliente_datos.nombre_completo}
-            Total: $${pedido.total}
-            Ganancia: $${pedido.ganancia_neta}
-            Plataforma: ${pedido.plataforma}
-        `);
-
-        // Aquí se puede integrar:
-        // - Email con SendGrid
-        // - WhatsApp con Twilio
-        // - Push notification
-        // - Telegram bot
-
+        console.log(`💰 VENTA CERRADA: ${pedido.producto_nombre} - $${pedido.total}`);
         return null;
     });
-
-// ============================================
-// FUNCIÓN: ESTADÍSTICAS DE VENTAS IA
-// ============================================
 
 export const getEstadisticasIA = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
@@ -459,39 +303,23 @@ export const getEstadisticasIA = functions.https.onRequest((req, res) => {
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
-            // Conversaciones activas
-            const conversacionesActivas = await db.collection('conversaciones')
-                .where('estado', 'in', ['activa', 'negociando', 'esperando_pago'])
-                .get();
+            const [conversaciones, ventas, pendientes] = await Promise.all([
+                db.collection('conversaciones').where('estado', 'in', ['activa', 'negociando']).get(),
+                db.collection('pedidos_despacho').where('created_at', '>=', hoy.toISOString()).get(),
+                db.collection('pedidos_despacho').where('estado', '==', 'pendiente').get()
+            ]);
 
-            // Ventas cerradas hoy
-            const ventasHoy = await db.collection('pedidos_despacho')
-                .where('created_at', '>=', hoy.toISOString())
-                .get();
+            let total = 0;
+            ventas.forEach(d => total += (d.data().total || 0));
 
-            let totalVentasHoy = 0;
-            let gananciaHoy = 0;
-            ventasHoy.forEach(doc => {
-                const data = doc.data();
-                totalVentasHoy += data.total || 0;
-                gananciaHoy += data.ganancia_neta || 0;
+            res.json({
+                conversaciones_activas: conversaciones.size,
+                ventas_hoy: ventas.size,
+                total_ventas_hoy: total,
+                pedidos_pendientes: pendientes.size
             });
-
-            // Pedidos pendientes de despacho
-            const pedidosPendientes = await db.collection('pedidos_despacho')
-                .where('estado', '==', 'pendiente')
-                .get();
-
-            res.status(200).json({
-                conversaciones_activas: conversacionesActivas.size,
-                ventas_hoy: ventasHoy.size,
-                total_ventas_hoy: totalVentasHoy,
-                ganancia_hoy: gananciaHoy,
-                pedidos_pendientes: pedidosPendientes.size
-            });
-
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            res.status(500).send(error.message);
         }
     });
 });

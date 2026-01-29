@@ -25,11 +25,24 @@ export const isFirebaseConfigured = () => {
 const app = getApps().length > 0 ? getApp() : (isFirebaseConfigured() ? initializeApp(firebaseConfig) : null)
 
 // Configuración robusta de Firestore para evitar timeouts locales
-import { initializeFirestore } from 'firebase/firestore'
+import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { connectAuthEmulator } from 'firebase/auth'
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 
 export const db = app ? initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true, // Fuerza modo polling si websockets falla
+    experimentalAutoDetectLongPolling: true,
 }) : null
 
 export const auth = app ? getAuth(app) : null
+export const functions = app ? getFunctions(app) : null
+
+// Lógica para conectar a emuladores (Descomentar o usar variable de entorno para activar)
+// Para activar: set NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true en .env.local
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true' && app) {
+    console.log('🔧 Usando Emuladores de Firebase Local')
+    if (db) connectFirestoreEmulator(db, 'localhost', 8080)
+    if (auth) connectAuthEmulator(auth, 'http://localhost:9099')
+    if (functions) connectFunctionsEmulator(functions, 'localhost', 5001)
+}
+
 export { app }

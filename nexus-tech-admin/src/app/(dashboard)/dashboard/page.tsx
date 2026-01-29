@@ -166,340 +166,337 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="animate-fade-in">
-            {/* Page Header */}
-            <header className="page-header">
+        <div className="dashboard-container animate-fade-in">
+            {/* Ambient Backgrounds */}
+            <div className="glow-bg glow-1" />
+            <div className="glow-bg glow-2" />
+
+            {/* Header */}
+            <header className="page-header relative z-10">
                 <div>
-                    <h1 className="page-title">
-                        <Sparkles style={{ width: '32px', height: '32px', color: 'var(--color-primary-light)' }} />
-                        NEXUS AUTO-SALES
+                    <h1 className="page-title text-gradient">
+                        <Sparkles className="icon-glow" />
+                        NEXUS COMMAND CENTER
                     </h1>
-                    <p className="page-subtitle">Tu sistema de ventas autónomas con IA</p>
+                    <p className="page-subtitle">Sistema Autónomo de Ventas & Gestión</p>
                 </div>
             </header>
 
-            {/* Demo Alert */}
-            {isDemo && (
-                <div className="alert alert--info">
-                    <Bot />
-                    <div className="alert-content">
-                        <div className="alert-message">
-                            <strong>Modo demo activo.</strong> Configura Firebase y OpenAI para activar la IA vendedora.
+            <div className="relative z-10">
+                {/* AI Status Banner - Cyberpunk Style */}
+                <div className="glass-panel ai-banner mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="ai-core-indicator">
+                            <div className="core-ring"></div>
+                            <Bot size={24} className="text-white relative z-10" />
                         </div>
+                        <div className="flex-1">
+                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                Nexus AI: <span className="text-emerald-400">EN LÍNEA</span>
+                            </h3>
+                            <p className="text-gray-400 text-sm">
+                                {metrics.conversaciones_activas} negociaciones activas en tiempo real.
+                                {isDemo && <span className="ml-2 text-amber-400">(Modo Simulación)</span>}
+                            </p>
+                        </div>
+                        <Link href="/conversaciones" className="btn-cyber">
+                            MONITORIZAR CHATS <ArrowRight size={16} />
+                        </Link>
                     </div>
                 </div>
-            )}
 
-            {/* AI Status Banner */}
-            <div className="ai-status-banner">
-                <div className="ai-status-indicator">
-                    <div className="ai-pulse" />
-                    <Bot />
+                {/* Integraciones (Preparación) */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="integration-chip off">
+                        <span className="dot off"></span> MercadoLibre
+                    </div>
+                    <div className="integration-chip off">
+                        <span className="dot off"></span> Facebook Marketplace
+                    </div>
+                    <div className="integration-chip on">
+                        <span className="dot on"></span> WhatsApp Business
+                    </div>
+                    <div className="integration-chip off">
+                        <span className="dot off"></span> Instagram DM
+                    </div>
                 </div>
-                <div className="ai-status-text">
-                    <strong>Agente IA Activo</strong>
-                    <span>{metrics.conversaciones_activas} conversaciones en curso</span>
-                </div>
-                <Link href="/conversaciones" className="btn btn--primary btn--sm">
-                    Ver Chats <ArrowRight style={{ width: '16px', height: '16px' }} />
-                </Link>
+
+                {/* Stats Grid - Neon Cards */}
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <article className="glass-card stat-card accent-green">
+                        <div className="stat-icon"><DollarSign size={24} /></div>
+                        <div>
+                            <p className="stat-label">Ganancia Neta</p>
+                            <p className="stat-value text-emerald-400">{formatCurrency(metrics.ganancia_neta_total)}</p>
+                        </div>
+                    </article>
+
+                    <article className="glass-card stat-card accent-blue">
+                        <div className="stat-icon"><TrendingUp size={24} /></div>
+                        <div>
+                            <p className="stat-label">Ventas Totales</p>
+                            <p className="stat-value text-blue-400">{formatCurrency(metrics.total_ventas)}</p>
+                        </div>
+                    </article>
+
+                    <article className="glass-card stat-card accent-purple">
+                        <div className="stat-icon"><MessageSquare size={24} /></div>
+                        <div>
+                            <p className="stat-label">Conversaciones</p>
+                            <p className="stat-value text-purple-400">{metrics.conversaciones_activas}</p>
+                        </div>
+                    </article>
+
+                    <article className="glass-card stat-card accent-orange">
+                        <div className="stat-icon"><Truck size={24} /></div>
+                        <div>
+                            <p className="stat-label">Pendientes</p>
+                            <p className="stat-value text-orange-400">{metrics.pedidos_pendientes}</p>
+                        </div>
+                    </article>
+                </section>
+
+                {/* Main Activity Grid */}
+                <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Active Conversations */}
+                    <article className="glass-panel">
+                        <div className="panel-header">
+                            <h3 className="panel-title flex items-center gap-2">
+                                <MessageSquare size={18} className="text-purple-400" />
+                                Actividad Reciente
+                            </h3>
+                            <Link href="/conversaciones" className="text-xs text-gray-400 hover:text-white transition-colors">
+                                VER TODO
+                            </Link>
+                        </div>
+
+                        <div className="space-y-3">
+                            {conversaciones.map(conv => (
+                                <div key={conv.id} className="list-item-cyber">
+                                    <div className="flex items-center gap-3">
+                                        <div className="platform-icon">
+                                            {plataformaEmoji[conv.plataforma] || '💬'}
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-white text-sm">{conv.cliente_nombre}</div>
+                                            <div className="text-xs text-gray-500">{conv.producto_nombre}</div>
+                                        </div>
+                                    </div>
+                                    <div className={`status-badge ${conv.estado}`}>
+                                        {estadoLabels[conv.estado]?.label || conv.estado}
+                                    </div>
+                                </div>
+                            ))}
+                            {conversaciones.length === 0 && (
+                                <div className="text-center py-8 text-gray-500 text-sm">
+                                    Sin actividad detectada.
+                                </div>
+                            )}
+                        </div>
+                    </article>
+
+                    {/* Pending Shipments */}
+                    <article className="glass-panel">
+                        <div className="panel-header">
+                            <h3 className="panel-title flex items-center gap-2">
+                                <Truck size={18} className="text-orange-400" />
+                                Cola de Despacho
+                            </h3>
+                            <Link href="/despachos" className="text-xs text-gray-400 hover:text-white transition-colors">
+                                GESTIONAR
+                            </Link>
+                        </div>
+
+                        <div className="space-y-3">
+                            {pedidos.map(pedido => (
+                                <div key={pedido.id} className="list-item-cyber">
+                                    <div>
+                                        <div className="font-semibold text-white text-sm">{pedido.producto_nombre}</div>
+                                        <div className="text-xs text-gray-500">{pedido.cliente_datos.nombre_completo}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-mono text-emerald-400 text-sm">+{formatCurrency(pedido.ganancia_neta)}</div>
+                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">Ganancia</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {pedidos.length === 0 && (
+                                <div className="text-center py-8 text-gray-500 text-sm">
+                                    Todo despachado. ¡Buen trabajo!
+                                </div>
+                            )}
+                        </div>
+                    </article>
+                </section>
             </div>
 
-            {/* Stats Grid */}
-            <section className="grid grid--stats">
-                <article className="card stats-card stats-card--highlight">
-                    <div className="stats-card-content">
-                        <div className="stats-card-info">
-                            <p className="stats-card-label">Ganancia Neta Total</p>
-                            <p className="stats-card-value stats-card-value--success">{formatCurrency(metrics.ganancia_neta_total)}</p>
-                            <p className="stats-card-subtitle">Ventas autónomas + manuales</p>
-                        </div>
-                        <div className="card-icon card-icon--success">
-                            <TrendingUp />
-                        </div>
-                    </div>
-                </article>
-
-                <article className="card stats-card">
-                    <div className="stats-card-content">
-                        <div className="stats-card-info">
-                            <p className="stats-card-label">Total Facturado</p>
-                            <p className="stats-card-value stats-card-value--info">{formatCurrency(metrics.total_ventas)}</p>
-                            <p className="stats-card-subtitle">{metrics.numero_transacciones} ventas</p>
-                        </div>
-                        <div className="card-icon card-icon--info">
-                            <DollarSign />
-                        </div>
-                    </div>
-                </article>
-
-                <article className="card stats-card">
-                    <div className="stats-card-content">
-                        <div className="stats-card-info">
-                            <p className="stats-card-label">Chats IA Activos</p>
-                            <p className="stats-card-value stats-card-value--warning">{metrics.conversaciones_activas}</p>
-                            <p className="stats-card-subtitle">Negociando ahora</p>
-                        </div>
-                        <div className="card-icon card-icon--warning">
-                            <MessageSquare />
-                        </div>
-                    </div>
-                </article>
-
-                <article className="card stats-card">
-                    <div className="stats-card-content">
-                        <div className="stats-card-info">
-                            <p className="stats-card-label">Pendientes de Envío</p>
-                            <p className="stats-card-value stats-card-value--primary">{metrics.pedidos_pendientes}</p>
-                            <p className="stats-card-subtitle">Listos para despachar</p>
-                        </div>
-                        <div className="card-icon card-icon--primary">
-                            <Truck />
-                        </div>
-                    </div>
-                </article>
-            </section>
-
-            {/* Two Column Layout */}
-            <section className="grid grid--2" style={{ marginTop: 'var(--space-8)' }}>
-                {/* Active Conversations */}
-                <article className="card">
-                    <div className="card-header">
-                        <h3 className="card-title">
-                            <MessageSquare style={{ width: '20px', height: '20px' }} />
-                            Conversaciones Activas
-                        </h3>
-                        <Link href="/conversaciones" className="btn btn--ghost btn--sm">
-                            Ver todas <ArrowRight style={{ width: '14px', height: '14px' }} />
-                        </Link>
-                    </div>
-
-                    {conversaciones.length === 0 ? (
-                        <div className="empty-state">
-                            <Bot style={{ width: '40px', height: '40px', color: 'var(--color-text-muted)' }} />
-                            <p className="empty-state-title">Sin conversaciones activas</p>
-                            <p className="empty-state-text">La IA empezará a chatear cuando lleguen mensajes</p>
-                        </div>
-                    ) : (
-                        <div className="conversation-list">
-                            {conversaciones.map(conv => (
-                                <div key={conv.id} className="conversation-item-mini">
-                                    <div className="conversation-item-mini-header">
-                                        <span className="conversation-platform">{plataformaEmoji[conv.plataforma]}</span>
-                                        <span className="conversation-client">{conv.cliente_nombre}</span>
-                                        <span className={estadoLabels[conv.estado]?.class || 'badge'}>
-                                            {estadoLabels[conv.estado]?.label || conv.estado}
-                                        </span>
-                                    </div>
-                                    <p className="conversation-product">{conv.producto_nombre}</p>
-                                    <span className="conversation-time">
-                                        {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true, locale: es })}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </article>
-
-                {/* Pending Shipments */}
-                <article className="card">
-                    <div className="card-header">
-                        <h3 className="card-title">
-                            <Truck style={{ width: '20px', height: '20px' }} />
-                            Despachos Pendientes
-                        </h3>
-                        <Link href="/despachos" className="btn btn--ghost btn--sm">
-                            Ver todos <ArrowRight style={{ width: '14px', height: '14px' }} />
-                        </Link>
-                    </div>
-
-                    {pedidos.length === 0 ? (
-                        <div className="empty-state">
-                            <Package style={{ width: '40px', height: '40px', color: 'var(--color-text-muted)' }} />
-                            <p className="empty-state-title">Sin pedidos pendientes</p>
-                            <p className="empty-state-text">Los pedidos cerrados aparecerán aquí</p>
-                        </div>
-                    ) : (
-                        <div className="shipment-list">
-                            {pedidos.map(pedido => (
-                                <div key={pedido.id} className="shipment-item">
-                                    <div className="shipment-item-header">
-                                        <strong>{pedido.producto_nombre}</strong>
-                                        <span className="badge badge--warning">Pendiente</span>
-                                    </div>
-                                    <p className="shipment-client">{pedido.cliente_datos.nombre_completo}</p>
-                                    <div className="shipment-footer">
-                                        <span className="shipment-total">{formatCurrency(pedido.total)}</span>
-                                        <span className="shipment-profit">+{formatCurrency(pedido.ganancia_neta)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </article>
-            </section>
-
-            <style>{`
-                .page-title {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-3);
-                }
-
-                .ai-status-banner {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-5);
-                    padding: var(--space-5) var(--space-6);
-                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(6, 182, 212, 0.1));
-                    border: 1px solid rgba(34, 197, 94, 0.3);
-                    border-radius: var(--radius-xl);
-                    margin-bottom: var(--space-8);
-                }
-
-                .ai-status-indicator {
+            <style jsx>{`
+                /* Base Styles */
+                .dashboard-container {
                     position: relative;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 48px;
-                    height: 48px;
-                    background: linear-gradient(135deg, var(--color-accent-emerald), var(--color-accent-cyan));
-                    border-radius: var(--radius-full);
+                    min-height: 85vh;
                     color: white;
                 }
 
-                .ai-pulse {
+                .glow-bg {
                     position: absolute;
-                    inset: -4px;
-                    border-radius: var(--radius-full);
-                    background: linear-gradient(135deg, var(--color-accent-emerald), var(--color-accent-cyan));
-                    opacity: 0.4;
-                    animation: ai-pulse 2s ease-in-out infinite;
+                    width: 600px;
+                    height: 600px;
+                    border-radius: 50%;
+                    filter: blur(120px);
+                    opacity: 0.15;
+                    z-index: 0;
+                    pointer-events: none;
+                }
+                .glow-1 { top: -100px; left: -100px; background: #6366f1; }
+                .glow-2 { bottom: -100px; right: -100px; background: #a855f7; }
+
+                .text-gradient {
+                    background: linear-gradient(to right, #fff, #94a3b8);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
                 }
 
-                @keyframes ai-pulse {
-                    0%, 100% { transform: scale(1); opacity: 0.4; }
-                    50% { transform: scale(1.15); opacity: 0.2; }
+                /* Glass Panels */
+                .glass-panel {
+                    background: rgba(13, 17, 23, 0.6);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 20px;
+                    padding: 24px;
                 }
 
-                .ai-status-text {
-                    flex: 1;
-                }
-
-                .ai-status-text strong {
-                    display: block;
-                    font-size: var(--font-size-base);
-                    color: var(--color-text-primary);
-                    margin-bottom: var(--space-1);
-                }
-
-                .ai-status-text span {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-muted);
-                }
-
-                .stats-card--highlight {
-                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(6, 182, 212, 0.05));
-                    border-color: rgba(34, 197, 94, 0.3);
-                }
-
-                .card-header {
+                .glass-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 16px;
+                    padding: 20px;
                     display: flex;
                     align-items: center;
+                    gap: 16px;
+                    transition: transform 0.2s, background 0.2s;
+                }
+                .glass-card:hover {
+                    background: rgba(255, 255, 255, 0.07);
+                    transform: translateY(-2px);
+                }
+
+                /* Integration Chips */
+                .integration-chip {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    background: rgba(0,0,0,0.3);
+                    border-radius: 50px;
+                    border: 1px solid rgba(255,255,255,0.05);
+                    font-size: 12px;
+                    color: #94a3b8;
+                }
+                .integration-chip.on { border-color: rgba(34, 197, 94, 0.3); color: #fff; background: rgba(34, 197, 94, 0.05); }
+                .dot { width: 6px; height: 6px; border-radius: 50%; }
+                .dot.on { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+                .dot.off { background: #475569; }
+
+                /* AI Banner Elements */
+                .ai-core-indicator {
+                    position: relative;
+                    width: 48px;
+                    height: 48px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #0f172a;
+                    border-radius: 50%;
+                    border: 1px solid rgba(56, 189, 248, 0.3);
+                }
+                .core-ring {
+                    position: absolute;
+                    inset: -3px;
+                    border-radius: 50%;
+                    border: 2px solid transparent;
+                    border-top-color: #38bdf8;
+                    border-right-color: #38bdf8;
+                    animation: spin 3s linear infinite;
+                }
+
+                .btn-cyber {
+                    background: rgba(56, 189, 248, 0.1);
+                    border: 1px solid rgba(56, 189, 248, 0.3);
+                    color: #38bdf8;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    letter-spacing: 1px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    transition: all 0.2s;
+                }
+                .btn-cyber:hover {
+                    background: rgba(56, 189, 248, 0.2);
+                    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+                }
+
+                /* Stats Typography */
+                .stat-icon {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255,255,255,0.05);
+                }
+                .accent-green .stat-icon { color: #34d399; }
+                .accent-blue .stat-icon { color: #60a5fa; }
+                .accent-purple .stat-icon { color: #c084fc; }
+                .accent-orange .stat-icon { color: #fb923c; }
+
+                .stat-label { font-size: 12px; color: #94a3b8; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .stat-value { font-size: 20px; font-weight: 700; font-family: 'Inter', monospace; }
+
+                /* List Items */
+                .panel-header {
+                    display: flex;
                     justify-content: space-between;
-                    margin-bottom: var(--space-5);
-                    padding-bottom: var(--space-4);
-                    border-bottom: 1px solid var(--color-border);
-                }
-
-                .card-title {
-                    display: flex;
                     align-items: center;
-                    gap: var(--space-3);
-                    font-size: var(--font-size-base);
-                    font-weight: 600;
-                    color: var(--color-text-primary);
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    margin-bottom: 16px;
                 }
+                .panel-title { font-size: 16px; font-weight: 600; }
 
-                .conversation-list,
-                .shipment-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: var(--space-4);
-                }
-
-                .conversation-item-mini,
-                .shipment-item {
-                    padding: var(--space-4);
-                    background: var(--color-bg-tertiary);
-                    border-radius: var(--radius-lg);
-                    transition: all var(--transition-fast);
-                }
-
-                .conversation-item-mini:hover,
-                .shipment-item:hover {
-                    background: rgba(99, 102, 241, 0.1);
-                }
-
-                .conversation-item-mini-header {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-3);
-                    margin-bottom: var(--space-2);
-                }
-
-                .conversation-client {
-                    flex: 1;
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                }
-
-                .conversation-product {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-primary-light);
-                    margin-bottom: var(--space-2);
-                }
-
-                .conversation-time {
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                }
-
-                .shipment-item-header {
+                .list-item-cyber {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: var(--space-2);
+                    padding: 12px;
+                    border-radius: 8px;
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid transparent;
+                    transition: all 0.2s;
+                }
+                .list-item-cyber:hover {
+                    background: rgba(255,255,255,0.05);
+                    border-color: rgba(255,255,255,0.1);
                 }
 
-                .shipment-item-header strong {
-                    color: var(--color-text-primary);
-                    font-size: var(--font-size-sm);
+                .status-badge {
+                    font-size: 10px;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
                 }
+                .status-badge.activa { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+                .status-badge.negociando { background: rgba(250, 204, 21, 0.1); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.2); }
+                .status-badge.esperando_pago { background: rgba(96, 165, 250, 0.1); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.2); }
 
-                .shipment-client {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-secondary);
-                    margin-bottom: var(--space-3);
-                }
-
-                .shipment-footer {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-
-                .shipment-total {
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                }
-
-                .shipment-profit {
-                    font-size: var(--font-size-sm);
-                    font-weight: 600;
-                    color: var(--color-accent-emerald);
-                }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </div>
     )

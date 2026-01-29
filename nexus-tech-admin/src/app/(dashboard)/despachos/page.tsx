@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { subscribeToPedidosDespacho, marcarComoEnviado, marcarComoEntregado, isFirebaseConfigured } from '@/lib/firebase'
-import { Package, Truck, CheckCircle, MapPin, Phone, Calendar, DollarSign, Printer, Search, Filter } from 'lucide-react'
+import { Package, Truck, CheckCircle, MapPin, Phone, Calendar, DollarSign, Printer, Search, ArrowRight, Box } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -100,11 +100,11 @@ const demoPedidos: PedidoDespacho[] = [
 ]
 
 const estadoConfig = {
-    pendiente: { label: 'Listo para enviar', className: 'badge badge--warning', color: '#f59e0b' },
-    preparando: { label: 'Preparando', className: 'badge badge--info', color: '#3b82f6' },
-    enviado: { label: 'Enviado', className: 'badge badge--primary', color: '#6366f1' },
-    entregado: { label: 'Entregado', className: 'badge badge--success', color: '#22c55e' },
-    devuelto: { label: 'Devuelto', className: 'badge badge--danger', color: '#ef4444' }
+    pendiente: { label: 'Listo para Enviar', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+    preparando: { label: 'Preparando', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    enviado: { label: 'En Camino', color: 'text-[var(--neon-purple)]', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    entregado: { label: 'Entregado', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    devuelto: { label: 'Devuelto', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' }
 }
 
 const plataformaEmoji: Record<string, string> = {
@@ -176,78 +176,68 @@ export default function DespachosPage() {
     const gananciaTotal = pedidos.reduce((sum, p) => sum + p.ganancia_neta, 0)
 
     return (
-        <div className="animate-fade-in">
-            {/* Page Header */}
-            <header className="page-header">
+        <div className="space-y-6 pb-12">
+            <header className="flex justify-between items-center">
                 <div>
-                    <h1 className="page-title">Centro de Despachos</h1>
-                    <p className="page-subtitle">Gestiona los envíos de las ventas cerradas por la IA</p>
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <Truck className="text-[var(--neon-cyan)] w-8 h-8" />
+                        Centro de Despachos
+                    </h1>
+                    <p className="text-gray-400 text-sm mt-1">Gestión logística de pedidos cerrados por IA</p>
                 </div>
             </header>
 
-            {/* Stats */}
-            <section className="grid grid--4" style={{ marginBottom: 'var(--space-8)' }}>
-                <div className="card" style={{ padding: 'var(--space-5)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                        <div className="card-icon card-icon--warning">
-                            <Package />
-                        </div>
-                        <div>
-                            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>Pendientes</p>
-                            <p style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: '#f59e0b' }}>{pendientes}</p>
-                        </div>
-                    </div>
+            {isDemo && (
+                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3 text-blue-300">
+                    <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400"></div>
+                    <span><strong>Modo Demo Activo.</strong> Visualizando pedidos simulados.</span>
                 </div>
-                <div className="card" style={{ padding: 'var(--space-5)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                        <div className="card-icon card-icon--primary">
-                            <Truck />
-                        </div>
-                        <div>
-                            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>En Camino</p>
-                            <p style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: '#6366f1' }}>{enviados}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="card" style={{ padding: 'var(--space-5)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                        <div className="card-icon card-icon--success">
-                            <CheckCircle />
-                        </div>
-                        <div>
-                            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>Entregados</p>
-                            <p style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: '#22c55e' }}>{entregados}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="card" style={{ padding: 'var(--space-5)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                        <div className="card-icon card-icon--success">
-                            <DollarSign />
-                        </div>
-                        <div>
-                            <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>Ganancia Neta</p>
-                            <p style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: '#22c55e' }}>${gananciaTotal.toFixed(2)}</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            )}
 
-            {/* Filters */}
-            <section style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-                <div className="input-group" style={{ flex: 1, maxWidth: '400px' }}>
-                    <div className="input-icon"><Search /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500 flex items-center gap-4">
+                    <div className="p-3 bg-amber-500/10 rounded-lg text-amber-500"><Package size={24} /></div>
+                    <div>
+                        <p className="text-gray-400 text-xs uppercase tracking-wider">Pendientes</p>
+                        <p className="text-2xl font-bold text-white">{pendientes}</p>
+                    </div>
+                </div>
+                <div className="glass-panel p-4 rounded-xl border-l-4 border-l-[var(--neon-purple)] flex items-center gap-4">
+                    <div className="p-3 bg-purple-500/10 rounded-lg text-[var(--neon-purple)]"><Truck size={24} /></div>
+                    <div>
+                        <p className="text-gray-400 text-xs uppercase tracking-wider">En Camino</p>
+                        <p className="text-2xl font-bold text-white">{enviados}</p>
+                    </div>
+                </div>
+                <div className="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500 flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-500"><CheckCircle size={24} /></div>
+                    <div>
+                        <p className="text-gray-400 text-xs uppercase tracking-wider">Entregados</p>
+                        <p className="text-2xl font-bold text-white">{entregados}</p>
+                    </div>
+                </div>
+                <div className="glass-panel p-4 rounded-xl border-l-4 border-l-cyan-500 flex items-center gap-4">
+                    <div className="p-3 bg-cyan-500/10 rounded-lg text-cyan-500"><DollarSign size={24} /></div>
+                    <div>
+                        <p className="text-gray-400 text-xs uppercase tracking-wider">Ganancia Neta</p>
+                        <p className="text-2xl font-bold text-white">${gananciaTotal.toFixed(2)}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                     <input
                         type="text"
-                        className="input input--with-icon"
-                        placeholder="Buscar por cliente o producto..."
+                        className="input-cyber w-full pl-10"
+                        placeholder="Buscar por cliente, dirección o producto..."
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                     />
                 </div>
                 <select
-                    className="input select"
-                    style={{ width: 'auto' }}
+                    className="input-cyber w-full md:w-48"
                     value={filtroEstado}
                     onChange={(e) => setFiltroEstado(e.target.value)}
                 >
@@ -256,279 +246,145 @@ export default function DespachosPage() {
                     <option value="enviado">Enviados</option>
                     <option value="entregado">Entregados</option>
                 </select>
-            </section>
+            </div>
 
-            {/* Pedidos Grid */}
-            <section className="despachos-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {pedidosFiltrados.length === 0 ? (
-                    <div className="card empty-state" style={{ gridColumn: '1 / -1' }}>
-                        <div className="empty-state-icon">
-                            <Package />
-                        </div>
-                        <p className="empty-state-title">No hay pedidos</p>
-                        <p className="empty-state-text">Los pedidos cerrados por la IA aparecerán aquí</p>
+                    <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-700 rounded-2xl bg-white/5">
+                        <Box className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-300">No se encontraron pedidos</h3>
+                        <p className="text-gray-500 mt-2">Intenta cambiar los filtros de búsqueda.</p>
                     </div>
                 ) : (
                     pedidosFiltrados.map(pedido => {
-                        const estadoCfg = estadoConfig[pedido.estado]
+                        const estadoCfg = estadoConfig[pedido.estado] || estadoConfig.pendiente
                         return (
-                            <article key={pedido.id} className="despacho-card">
-                                <div className="despacho-header">
-                                    <span className="despacho-plataforma">
-                                        {plataformaEmoji[pedido.plataforma]} Venta IA
-                                    </span>
-                                    <span className={estadoCfg.className}>{estadoCfg.label}</span>
+                            <article key={pedido.id} className="glass-panel p-0 rounded-2xl overflow-hidden group hover:shadow-[0_0_20px_rgba(34,211,238,0.1)] transition-all duration-300 border border-white/5 hover:border-[var(--neon-cyan)]/30">
+                                <div className="p-5 border-b border-white/5 bg-white/[0.02]">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className={`px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${estadoCfg.bg} ${estadoCfg.color} border ${estadoCfg.border}`}>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                                            {estadoCfg.label}
+                                        </div>
+                                        <span className="text-xs text-gray-500 font-mono flex items-center gap-1 bg-black/30 px-2 py-1 rounded">
+                                            {plataformaEmoji[pedido.plataforma]} {pedido.plataforma.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <h3 className="font-bold text-white text-lg leading-tight line-clamp-2 mb-1">{pedido.producto_nombre}</h3>
+                                    <p className="text-gray-400 text-sm">Cantidad: <span className="text-white font-medium">{pedido.cantidad} u.</span></p>
                                 </div>
 
-                                <h3 className="despacho-producto">{pedido.producto_nombre}</h3>
-                                <p className="despacho-cantidad">Cantidad: {pedido.cantidad}</p>
-
-                                <div className="despacho-cliente">
-                                    <div className="despacho-cliente-row">
-                                        <MapPin style={{ width: '16px', height: '16px' }} />
+                                <div className="p-5 space-y-4">
+                                    <div className="flex items-start gap-3 text-sm">
+                                        <div className="p-2 bg-gray-800 rounded-lg text-gray-400 shrink-0"><MapPin size={16} /></div>
                                         <div>
-                                            <strong>{pedido.cliente_datos.nombre_completo}</strong>
-                                            <p>{pedido.cliente_datos.direccion}</p>
-                                            <p>{pedido.cliente_datos.ciudad}</p>
+                                            <p className="font-bold text-gray-200">{pedido.cliente_datos.nombre_completo}</p>
+                                            <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">
+                                                {pedido.cliente_datos.direccion}<br />
+                                                {pedido.cliente_datos.ciudad}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="despacho-cliente-row">
-                                        <Phone style={{ width: '16px', height: '16px' }} />
-                                        <span>{pedido.cliente_datos.telefono}</span>
+
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className="p-2 bg-gray-800 rounded-lg text-gray-400 shrink-0"><Phone size={16} /></div>
+                                        <span className="text-gray-300 font-mono tracking-wide">{pedido.cliente_datos.telefono}</span>
+                                    </div>
+
+                                    <div className="bg-black/30 rounded-xl p-3 grid grid-cols-2 gap-px border border-white/5">
+                                        <div className="text-center border-r border-white/5">
+                                            <p className="text-[10px] text-gray-500 uppercase">Total Venta</p>
+                                            <p className="text-white font-mono font-bold">${pedido.total.toFixed(2)}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-500 uppercase">Ganancia</p>
+                                            <p className="text-emerald-400 font-mono font-bold">+${pedido.ganancia_neta.toFixed(2)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-white/5">
+                                        <span className="flex items-center gap-1.5">
+                                            <Calendar size={12} />
+                                            {format(new Date(pedido.created_at), "d MMM, HH:mm", { locale: es })}
+                                        </span>
+                                        {pedido.tracking_number && (
+                                            <span className="flex items-center gap-1.5 text-[var(--neon-purple)]">
+                                                <Truck size={12} />
+                                                #{pedido.tracking_number}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="despacho-financials">
-                                    <div className="despacho-financial-item">
-                                        <span>Total</span>
-                                        <strong>${pedido.total.toFixed(2)}</strong>
-                                    </div>
-                                    <div className="despacho-financial-item profit">
-                                        <span>Ganancia</span>
-                                        <strong>${pedido.ganancia_neta.toFixed(2)}</strong>
-                                    </div>
-                                </div>
-
-                                <div className="despacho-meta">
-                                    <Calendar style={{ width: '14px', height: '14px' }} />
-                                    <span>{format(new Date(pedido.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</span>
-                                </div>
-
-                                {pedido.tracking_number && (
-                                    <div className="despacho-tracking">
-                                        <Truck style={{ width: '14px', height: '14px' }} />
-                                        <span>Tracking: {pedido.tracking_number}</span>
+                                {(pedido.estado === 'pendiente' || pedido.estado === 'enviado') && (
+                                    <div className="p-4 bg-gray-900/50 flex gap-2 border-t border-white/5">
+                                        {pedido.estado === 'pendiente' && (
+                                            <>
+                                                <button onClick={() => window.print()} className="btn-ghost flex-1 py-2 text-xs flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                                    <Printer size={16} />
+                                                    Etiqueta
+                                                </button>
+                                                <button onClick={() => setSelectedPedido(pedido)} className="btn-cyber-primary flex-1 py-2 text-xs flex items-center justify-center gap-2">
+                                                    Marcar Enviado <ArrowRight size={14} />
+                                                </button>
+                                            </>
+                                        )}
+                                        {pedido.estado === 'enviado' && (
+                                            <button
+                                                onClick={() => handleMarcarEntregado(pedido.id)}
+                                                className="w-full py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center gap-2 transition-all text-sm font-medium"
+                                            >
+                                                <CheckCircle size={16} />
+                                                Confirmar Entrega
+                                            </button>
+                                        )}
                                     </div>
                                 )}
-
-                                <div className="despacho-actions">
-                                    {pedido.estado === 'pendiente' && (
-                                        <>
-                                            <button
-                                                className="btn btn--secondary btn--sm"
-                                                onClick={() => window.print()}
-                                            >
-                                                <Printer style={{ width: '16px', height: '16px' }} />
-                                                Etiqueta
-                                            </button>
-                                            <button
-                                                className="btn btn--primary btn--sm"
-                                                onClick={() => setSelectedPedido(pedido)}
-                                            >
-                                                <Truck style={{ width: '16px', height: '16px' }} />
-                                                Marcar Enviado
-                                            </button>
-                                        </>
-                                    )}
-                                    {pedido.estado === 'enviado' && (
-                                        <button
-                                            className="btn btn--success btn--sm"
-                                            style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
-                                            onClick={() => handleMarcarEntregado(pedido.id)}
-                                        >
-                                            <CheckCircle style={{ width: '16px', height: '16px' }} />
-                                            Confirmar Entrega
-                                        </button>
-                                    )}
-                                </div>
                             </article>
                         )
                     })
                 )}
-            </section>
+            </div>
 
-            {/* Modal para tracking */}
+            {/* Modal para tracking - Futurista */}
             {selectedPedido && (
-                <div className="modal-overlay" onClick={() => setSelectedPedido(null)}>
-                    <div className="modal animate-fade-in" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
-                        <header className="modal-header">
-                            <h2 className="modal-title">Marcar como Enviado</h2>
-                            <button className="modal-close" onClick={() => setSelectedPedido(null)}>×</button>
-                        </header>
-                        <div className="modal-body">
-                            <p style={{ marginBottom: 'var(--space-4)', color: 'var(--color-text-secondary)' }}>
-                                Ingresa el número de tracking (opcional)
-                            </p>
-                            <input
-                                type="text"
-                                className="input"
-                                placeholder="Ej: COL123456789"
-                                value={trackingInput}
-                                onChange={(e) => setTrackingInput(e.target.value)}
-                            />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedPedido(null)}>
+                    <div className="glass-panel w-full max-w-md p-6 rounded-2xl border border-[var(--neon-purple)]/30 shadow-[0_0_50px_rgba(139,92,246,0.15)] animate-fade-in relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--neon-purple)] to-transparent"></div>
+
+                        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                            <Truck className="text-[var(--neon-purple)]" />
+                            Confirmar Despacho
+                        </h2>
+                        <p className="text-gray-400 text-sm mb-6">
+                            Estás marcando el pedido de <strong className="text-white">{selectedPedido.cliente_datos.nombre_completo}</strong> como enviado.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-gray-500 uppercase tracking-wider mb-1 block">Número de Guía / Tracking (Opcional)</label>
+                                <input
+                                    type="text"
+                                    className="input-cyber w-full"
+                                    placeholder="Ej: SERV12345678"
+                                    value={trackingInput}
+                                    onChange={(e) => setTrackingInput(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 transition-colors text-sm font-medium" onClick={() => setSelectedPedido(null)}>
+                                    Cancelar
+                                </button>
+                                <button className="flex-1 btn-cyber-primary py-3 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20" onClick={() => handleMarcarEnviado(selectedPedido.id)}>
+                                    Confirmar Envío
+                                </button>
+                            </div>
                         </div>
-                        <footer className="modal-footer">
-                            <button className="btn btn--secondary" onClick={() => setSelectedPedido(null)}>
-                                Cancelar
-                            </button>
-                            <button className="btn btn--primary" onClick={() => handleMarcarEnviado(selectedPedido.id)}>
-                                Confirmar Envío
-                            </button>
-                        </footer>
                     </div>
                 </div>
             )}
-
-            <style>{`
-                .despachos-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-                    gap: var(--space-6);
-                }
-
-                .despacho-card {
-                    background: var(--color-bg-card);
-                    border: 1px solid var(--color-border);
-                    border-radius: var(--radius-xl);
-                    padding: var(--space-6);
-                    transition: all var(--transition-base);
-                }
-
-                .despacho-card:hover {
-                    border-color: rgba(99, 102, 241, 0.3);
-                    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-                }
-
-                .despacho-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: var(--space-4);
-                }
-
-                .despacho-plataforma {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-muted);
-                }
-
-                .despacho-producto {
-                    font-size: var(--font-size-lg);
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                    margin-bottom: var(--space-1);
-                }
-
-                .despacho-cantidad {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-muted);
-                    margin-bottom: var(--space-5);
-                }
-
-                .despacho-cliente {
-                    background: var(--color-bg-tertiary);
-                    border-radius: var(--radius-lg);
-                    padding: var(--space-4);
-                    margin-bottom: var(--space-5);
-                }
-
-                .despacho-cliente-row {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: var(--space-3);
-                    color: var(--color-text-secondary);
-                    font-size: var(--font-size-sm);
-                }
-
-                .despacho-cliente-row + .despacho-cliente-row {
-                    margin-top: var(--space-3);
-                    padding-top: var(--space-3);
-                    border-top: 1px solid var(--color-border);
-                }
-
-                .despacho-cliente-row strong {
-                    color: var(--color-text-primary);
-                    display: block;
-                    margin-bottom: var(--space-1);
-                }
-
-                .despacho-cliente-row svg {
-                    color: var(--color-text-muted);
-                    flex-shrink: 0;
-                    margin-top: 2px;
-                }
-
-                .despacho-financials {
-                    display: flex;
-                    gap: var(--space-4);
-                    margin-bottom: var(--space-4);
-                }
-
-                .despacho-financial-item {
-                    flex: 1;
-                    text-align: center;
-                    padding: var(--space-3);
-                    background: var(--color-bg-tertiary);
-                    border-radius: var(--radius-md);
-                }
-
-                .despacho-financial-item span {
-                    display: block;
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                    margin-bottom: var(--space-1);
-                }
-
-                .despacho-financial-item strong {
-                    font-size: var(--font-size-lg);
-                    color: var(--color-text-primary);
-                }
-
-                .despacho-financial-item.profit strong {
-                    color: var(--color-accent-emerald);
-                }
-
-                .despacho-meta,
-                .despacho-tracking {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-2);
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                    margin-bottom: var(--space-3);
-                }
-
-                .despacho-tracking {
-                    color: var(--color-primary-light);
-                }
-
-                .despacho-actions {
-                    display: flex;
-                    gap: var(--space-3);
-                    margin-top: var(--space-5);
-                    padding-top: var(--space-5);
-                    border-top: 1px solid var(--color-border);
-                }
-
-                .despacho-actions .btn {
-                    flex: 1;
-                }
-
-                @media (max-width: 640px) {
-                    .despachos-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

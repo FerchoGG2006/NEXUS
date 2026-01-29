@@ -179,6 +179,21 @@ export async function getProductosBajoStock() {
     }
 }
 
+export async function getProductosActivos() {
+    return getAll(COLLECTIONS.PRODUCTOS, [
+        where('activo', '==', true),
+        orderBy('nombre')
+    ])
+}
+
+// Generador de ID de venta legible (Ej: VTA-20241025-X8J2)
+export function generarNumeroVenta(): string {
+    const date = new Date()
+    const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, '')
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `VTA-${yyyymmdd}-${random}`
+}
+
 // ============================================
 // CONVERSACIONES (Tiempo Real)
 // ============================================
@@ -289,7 +304,8 @@ export async function getMetricasDashboard() {
         afiliados_activos: 0,
         ventas_retail: 0,
         ventas_b2b: 0,
-        ventas_afiliados: 0
+        ventas_afiliados: 0,
+        comisiones_pagadas: 0
     }
 
     const fetchOp = async () => {
@@ -334,7 +350,8 @@ export async function getMetricasDashboard() {
                 afiliados_activos: afiliadosSnap.size,
                 ventas_retail: totalVentas * 0.4,
                 ventas_b2b: totalVentas * 0.35,
-                ventas_afiliados: totalVentas * 0.25
+                ventas_afiliados: totalVentas * 0.25,
+                comisiones_pagadas: (totalVentas * 0.25) * 0.10 // 10% de comision estimada
             }
         } catch (error) {
             console.error('Error getting dashboard metrics:', error)
@@ -393,4 +410,15 @@ export async function updateConfiguracionIA(config: any) {
 
 export async function getAfiliados() {
     return getAll(COLLECTIONS.AFILIADOS, [orderBy('nombre')])
+}
+
+export async function getClientesB2B() {
+    return getAll(COLLECTIONS.CLIENTES_B2B, [orderBy('empresa')])
+}
+
+// Generar código de afiliado (Ej: NEX-X9Y2)
+export function generarCodigoAfiliado(nombre: string): string {
+    const prefijo = nombre.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'NEX')
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `${prefijo}-${random}`
 }

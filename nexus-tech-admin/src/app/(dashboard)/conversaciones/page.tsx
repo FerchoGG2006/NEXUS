@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { subscribeToConversaciones, isFirebaseConfigured } from '@/lib/firebase'
-import { MessageSquare, User, Clock, CheckCircle, AlertCircle, Send, Bot, ShoppingBag, Zap } from 'lucide-react'
+import { MessageSquare, User, Clock, CheckCircle, AlertCircle, Zap, Bot, ShoppingBag, Search, Filter } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { SalesSimulator } from '@/components/SalesSimulator'
@@ -26,7 +26,7 @@ interface Conversacion {
     created_at: string
 }
 
-// Mover demoConversaciones a una función generadora para asegurar timestamps frescos en el cliente
+// Demo Data
 const getDemoConversaciones = (): Conversacion[] => [
     {
         id: '1',
@@ -48,11 +48,11 @@ const getDemoConversaciones = (): Conversacion[] => [
 ]
 
 const estadoConfig: any = {
-    activa: { label: 'Activa', className: 'badge badge--info', icon: MessageSquare },
-    negociando: { label: 'Negociando', className: 'badge badge--warning', icon: ShoppingBag },
-    esperando_pago: { label: 'Esperando Pago', className: 'badge badge--primary', icon: Clock },
-    cerrada: { label: 'Cerrada', className: 'badge badge--success', icon: CheckCircle },
-    abandonada: { label: 'Abandonada', className: 'badge badge--danger', icon: AlertCircle }
+    activa: { label: 'Activa', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30', icon: MessageSquare },
+    negociando: { label: 'Negociando', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30', icon: ShoppingBag },
+    esperando_pago: { label: 'Esperando Pago', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30', icon: Clock },
+    cerrada: { label: 'Cerrada', color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/30', icon: CheckCircle },
+    abandonada: { label: 'Abandonada', color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/30', icon: AlertCircle }
 }
 
 const plataformaConfig: Record<string, { emoji: string; color: string }> = {
@@ -63,7 +63,6 @@ const plataformaConfig: Record<string, { emoji: string; color: string }> = {
 }
 
 export default function ConversacionesPage() {
-    // Inicializar vacío para evitar hydration mismatch con fechas
     const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
     const [selectedChat, setSelectedChat] = useState<Conversacion | null>(null)
     const [isDemo, setIsDemo] = useState(true)
@@ -84,11 +83,9 @@ export default function ConversacionesPage() {
         setIsDemo(false)
         const unsubscribe = subscribeToConversaciones((data) => {
             setConversaciones(data as Conversacion[])
-            // Mantener seleccionado o seleccionar el primero
             if (!selectedChat && data.length > 0) {
                 setSelectedChat(data[0] as Conversacion)
             } else if (selectedChat) {
-                // Actualizar info del chat seleccionado si cambia
                 const updated = data.find((c: Conversacion) => c.id === selectedChat.id)
                 if (updated) setSelectedChat(updated as Conversacion)
             }
@@ -103,395 +100,199 @@ export default function ConversacionesPage() {
         : conversaciones.filter(c => c.estado === filtroEstado)
 
     return (
-        <div className="animate-fade-in">
-            {/* Page Header */}
-            <header className="page-header">
+        <div className="h-[calc(100vh-6rem)] flex flex-col gap-6">
+            {/* Header */}
+            <header className="flex items-center justify-between mb-2">
                 <div>
-                    <h1 className="page-title">
-                        <Bot style={{ width: '32px', height: '32px', color: 'var(--color-primary-light)' }} />
-                        Conversaciones IA
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <Bot className="text-[var(--neon-cyan)] w-8 h-8" />
+                        Conversaciones Neurales
                     </h1>
-                    <p className="page-subtitle">Monitorea cómo tu agente cierra ventas en tiempo real</p>
+                    <p className="text-gray-400 text-sm mt-1">Interacciones en tiempo real del Agente IA</p>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+
+                <div className="flex gap-4">
+                    <div className="relative group">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-white transition-colors" size={16} />
+                        <select
+                            className="pl-10 pr-8 py-2 bg-black/40 border border-[var(--glass-border)] rounded-lg text-sm text-white focus:border-[var(--neon-cyan)] outline-none appearance-none cursor-pointer"
+                            value={filtroEstado}
+                            onChange={(e) => setFiltroEstado(e.target.value)}
+                        >
+                            <option value="todas">Todos los estados</option>
+                            <option value="activa">Activas</option>
+                            <option value="negociando">Negociando</option>
+                            <option value="esperando_pago">Esperando Pago</option>
+                            <option value="cerrada">Cerradas</option>
+                        </select>
+                    </div>
+
                     <button
-                        className="btn btn--primary"
                         onClick={() => setShowSimulator(true)}
+                        className="btn-cyber-primary px-6 py-2 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-transform hover:scale-105"
                     >
-                        <Zap style={{ width: '18px', height: '18px' }} />
-                        Simular Cliente
+                        <Zap size={18} />
+                        <span>Simular Cliente</span>
                     </button>
-                    <select
-                        className="input select"
-                        style={{ width: 'auto' }}
-                        value={filtroEstado}
-                        onChange={(e) => setFiltroEstado(e.target.value)}
-                    >
-                        <option value="todas">Todas</option>
-                        <option value="activa">Activas</option>
-                        <option value="negociando">Negociando</option>
-                        <option value="esperando_pago">Esperando Pago</option>
-                        <option value="cerrada">Cerradas</option>
-                    </select>
                 </div>
             </header>
 
-            {/* Simulator Modal */}
             {showSimulator && <SalesSimulator onClose={() => setShowSimulator(false)} />}
 
-            {/* Demo Alert */}
-            {isDemo && (
-                <div className="alert alert--info">
-                    <Bot style={{ width: '20px', height: '20px' }} />
-                    <div className="alert-content">
-                        <div className="alert-message">
-                            <strong>Modo demo.</strong> Conecta Firebase y OpenAI para activar el agente.
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Main Content Grid */}
+            <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
 
-            {/* Main Layout */}
-            <div className="conversations-layout">
-                {/* Lista de conversaciones */}
-                <aside className="conversations-list">
-                    <div className="conversations-list-header">
-                        <h3>{conversacionesFiltradas.length} conversaciones</h3>
+                {/* Lista de Chats (Izquierda) */}
+                <div className="col-span-4 glass-panel rounded-2xl flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-[var(--glass-border)] bg-black/20 flex items-center justify-between">
+                        <h3 className="tex-sm font-BOLD text-gray-300 tracking-wider">BANDEJA DE ENTRADA</h3>
+                        <span className="text-xs bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] px-2 py-1 rounded-md border border-[var(--neon-cyan)]/20">
+                            {conversacionesFiltradas.length} ACTIVOS
+                        </span>
                     </div>
-                    <div className="conversations-list-items">
+
+                    <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
                         {conversacionesFiltradas.map(conv => {
-                            const estadoCfg = estadoConfig[conv.estado] || estadoConfig.activa
-                            const plataformaCfg = plataformaConfig[conv.plataforma] || plataformaConfig.web
+                            const est = estadoConfig[conv.estado] || estadoConfig.activa
+                            const plat = plataformaConfig[conv.plataforma] || plataformaConfig.web
                             const isSelected = selectedChat?.id === conv.id
 
                             return (
                                 <div
                                     key={conv.id}
-                                    className={`conversation-item ${isSelected ? 'active' : ''}`}
                                     onClick={() => setSelectedChat(conv)}
+                                    className={`
+                                        p-4 rounded-xl cursor-pointer transition-all border border-transparent
+                                        ${isSelected
+                                            ? 'bg-[var(--neon-cyan)]/10 border-[var(--neon-cyan)]/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
+                                            : 'hover:bg-white/5 hover:border-white/10'
+                                        }
+                                    `}
                                 >
-                                    <div className="conversation-item-header">
-                                        <span className="conversation-platform" style={{ color: plataformaCfg.color }}>
-                                            {plataformaCfg.emoji}
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg filter drop-shadow-md">{plat.emoji}</span>
+                                            <span className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                                                {conv.cliente_nombre}
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-500 font-mono">
+                                            {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true, locale: es })}
                                         </span>
-                                        <span className="conversation-client">{conv.cliente_nombre}</span>
-                                        <span className={estadoCfg.className}>{estadoCfg.label.split(' ')[0]}</span>
                                     </div>
-                                    <p className="conversation-product">{conv.producto_nombre}</p>
-                                    <p className="conversation-preview">
-                                        {conv.historial_chat[conv.historial_chat.length - 1]?.contenido.slice(0, 40)}...
+
+                                    <p className="text-xs text-[var(--neon-purple)] font-medium mb-1 truncate">
+                                        {conv.producto_nombre}
                                     </p>
-                                    <span className="conversation-time">
-                                        {formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true, locale: es })}
-                                    </span>
+
+                                    <p className="text-xs text-gray-400 truncate opacity-80">
+                                        {conv.historial_chat[conv.historial_chat.length - 1]?.contenido}
+                                    </p>
+
+                                    <div className="mt-3 flex justify-end">
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${est.color} ${est.bg} ${est.border}`}>
+                                            {est.label}
+                                        </span>
+                                    </div>
                                 </div>
                             )
                         })}
                     </div>
-                </aside>
+                </div>
 
-                {/* Chat Area */}
-                <div className="card chat-area">
+                {/* Área de Chat (Derecha) */}
+                <div className="col-span-8 glass-panel rounded-2xl flex flex-col overflow-hidden relative">
+                    {/* Background Detail */}
+                    <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 pointer-events-none" />
+
                     {selectedChat ? (
                         <>
-                            <div className="chat-header">
-                                <div className="chat-user-info">
-                                    <span className="chat-avatar">
-                                        <User />
-                                    </span>
+                            {/* Chat Header */}
+                            <div className="p-4 border-b border-[var(--glass-border)] bg-black/40 backdrop-blur-md flex justify-between items-center z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center border border-gray-600">
+                                        <User className="text-gray-300 w-5 h-5" />
+                                    </div>
                                     <div>
-                                        <h3 className="chat-username">{selectedChat.cliente_nombre}</h3>
-                                        <span className="chat-product-hint">
+                                        <h2 className="text-white font-bold text-lg leading-tight">{selectedChat.cliente_nombre}</h2>
+                                        <p className="text-xs text-[var(--neon-cyan)] flex items-center gap-1">
                                             Interesado en: {selectedChat.producto_nombre}
-                                        </span>
+                                        </p>
                                     </div>
                                 </div>
-                                <div className={`badge ${estadoConfig[selectedChat.estado]?.className || 'badge--info'}`}>
+
+                                <div className={`px-3 py-1 rounded-full flex items-center gap-2 border ${estadoConfig[selectedChat.estado]?.border} ${estadoConfig[selectedChat.estado]?.bg}`}>
                                     {estadoConfig[selectedChat.estado]?.icon && (
-                                        <span style={{ marginRight: '6px' }}>
-                                            {(() => {
-                                                const Icon = estadoConfig[selectedChat.estado].icon;
-                                                return <Icon size={14} />;
-                                            })()}
-                                        </span>
+                                        (() => {
+                                            const Icon = estadoConfig[selectedChat.estado].icon;
+                                            return <Icon size={14} className={estadoConfig[selectedChat.estado]?.color} />;
+                                        })()
                                     )}
-                                    {estadoConfig[selectedChat.estado]?.label || selectedChat.estado}
+                                    <span className={`text-xs font-bold ${estadoConfig[selectedChat.estado]?.color}`}>
+                                        {estadoConfig[selectedChat.estado]?.label || selectedChat.estado}
+                                    </span>
                                 </div>
                             </div>
 
-                            <div className="chat-messages">
+                            {/* Chat Messages */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar z-10">
                                 {selectedChat.historial_chat.map((msg, idx) => (
                                     <div
                                         key={idx}
-                                        className={`message ${msg.rol === 'cliente' ? 'message--client' : 'message--ia'}`}
+                                        className={`flex flex-col max-w-[75%] ${msg.rol === 'cliente' ? 'self-end items-end' : 'self-start items-start'}`}
                                     >
-                                        <div className="message-content">
+                                        <div className={`
+                                            relative p-4 rounded-2xl text-sm leading-relaxed
+                                            ${msg.rol === 'cliente'
+                                                ? 'bg-gradient-to-br from-[var(--neon-purple)] to-indigo-700 text-white rounded-br-none shadow-[0_5px_15px_rgba(139,92,246,0.3)]'
+                                                : 'glass-card border-none text-gray-200 rounded-bl-none ml-8' // ml-8 espacio para icono
+                                            }
+                                        `}>
+                                            {/* Icono IA flotante */}
                                             {msg.rol === 'ia' && (
-                                                <div className="message-bot-icon">
-                                                    <Bot size={14} />
+                                                <div className="absolute -left-10 top-0 w-8 h-8 rounded-full bg-black border border-[var(--neon-cyan)] flex items-center justify-center shadow-[0_0_10px_var(--neon-cyan-glow)]">
+                                                    <Bot size={16} className="text-[var(--neon-cyan)]" />
                                                 </div>
                                             )}
+
                                             <p>{msg.contenido}</p>
                                         </div>
-                                        <span className="message-time">
+                                        <span className="text-[10px] text-gray-500 mt-2 px-2 font-mono">
                                             {format(new Date(msg.timestamp), 'HH:mm')}
                                         </span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="chat-input-area">
-                                <input
-                                    type="text"
-                                    className="input chat-input"
-                                    placeholder="La IA responde automáticamente..."
-                                    disabled
-                                />
+                            {/* Input Area (Read Only) */}
+                            <div className="p-4 border-t border-[var(--glass-border)] bg-black/20 z-10">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Bot size={18} className="text-gray-500" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-black/50 border border-gray-700 text-gray-400 text-sm rounded-xl block pl-10 p-3 italic cursor-not-allowed focus:ring-0 focus:border-gray-700"
+                                        placeholder="El Agente IA está procesando la conversación..."
+                                        disabled
+                                    />
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <div className="w-2 h-2 bg-[var(--neon-green)] rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
                             </div>
                         </>
                     ) : (
-                        <div className="chat-empty-state">
-                            <MessageSquare size={48} style={{ opacity: 0.2 }} />
-                            <p>Selecciona una conversación</p>
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-500 z-10">
+                            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-4 animate-pulse">
+                                <MessageSquare size={48} className="opacity-50" />
+                            </div>
+                            <p className="text-lg font-medium">Selecciona una señal neuronal</p>
+                            <p className="text-sm opacity-60">Monitoreando espectro de comunicaciones...</p>
                         </div>
                     )}
                 </div>
             </div>
-
-            <style jsx>{`
-                .conversations-layout {
-                    display: grid;
-                    grid-template-columns: 380px 1fr;
-                    gap: var(--space-6);
-                    height: calc(100vh - 200px);
-                    min-height: 500px;
-                }
-
-                .conversations-list {
-                    background: var(--color-bg-card);
-                    border: 1px solid var(--color-border);
-                    border-radius: var(--radius-xl);
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .conversations-list-header {
-                    padding: var(--space-5) var(--space-6);
-                    border-bottom: 1px solid var(--color-border);
-                    background: rgba(0,0,0,0.2);
-                }
-
-                .conversations-list-header h3 {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-muted);
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .conversations-list-items {
-                    flex: 1;
-                    overflow-y: auto;
-                }
-
-                .conversation-item {
-                    padding: var(--space-5) var(--space-6);
-                    border-bottom: 1px solid var(--color-border);
-                    cursor: pointer;
-                    transition: all var(--transition-fast);
-                    position: relative;
-                }
-
-                .conversation-item:hover {
-                    background: rgba(99, 102, 241, 0.05);
-                }
-
-                .conversation-item.active {
-                    background: rgba(99, 102, 241, 0.1);
-                }
-                
-                .conversation-item.active::before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 3px;
-                    background: var(--color-primary);
-                }
-
-                .conversation-item-header {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-3);
-                    margin-bottom: var(--space-1);
-                }
-
-                .conversation-platform {
-                    font-size: 1.1em;
-                }
-
-                .conversation-client {
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                    flex: 1;
-                    font-size: var(--font-size-sm);
-                }
-
-                .conversation-product {
-                    font-size: var(--font-size-xs);
-                    color: var(--color-primary-light);
-                    margin-bottom: var(--space-2);
-                    font-weight: 500;
-                }
-
-                .conversation-preview {
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                    margin-bottom: var(--space-2);
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-
-                .conversation-time {
-                    font-size: 10px;
-                    color: var(--color-text-disabled);
-                    text-transform: uppercase;
-                }
-
-                .chat-area {
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    padding: 0 !important;
-                }
-
-                .chat-header {
-                    padding: var(--space-5) var(--space-6);
-                    border-bottom: 1px solid var(--color-border);
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    background: rgba(0,0,0,0.2);
-                }
-
-                .chat-user-info {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-4);
-                }
-
-                .chat-avatar {
-                    width: 40px;
-                    height: 40px;
-                    background: var(--color-bg-tertiary);
-                    border-radius: var(--radius-full);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--color-text-secondary);
-                }
-
-                .chat-username {
-                    font-size: var(--font-size-base);
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                }
-
-                .chat-product-hint {
-                    display: block;
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                }
-
-                .chat-messages {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: var(--space-6);
-                    display: flex;
-                    flex-direction: column;
-                    gap: var(--space-4);
-                }
-
-                .message {
-                    display: flex;
-                    flex-direction: column;
-                    max-width: 75%;
-                }
-
-                .message--client {
-                    align-self: flex-end;
-                    align-items: flex-end;
-                }
-
-                .message--ia {
-                    align-self: flex-start;
-                    align-items: flex-start;
-                }
-
-                .message-content {
-                    padding: var(--space-3) var(--space-5);
-                    border-radius: var(--radius-xl);
-                    position: relative;
-                }
-
-                .message--client .message-content {
-                    background: var(--color-primary);
-                    color: white;
-                    border-bottom-right-radius: 4px;
-                }
-
-                .message--ia .message-content {
-                    background: var(--color-bg-tertiary);
-                    color: var(--color-text-primary);
-                    border-bottom-left-radius: 4px;
-                    padding-left: 42px; /* Espacio para icono IA */
-                }
-
-                .message-bot-icon {
-                    position: absolute;
-                    left: 12px;
-                    top: 12px;
-                    color: var(--color-accent-cyan);
-                }
-
-                .message-time {
-                    font-size: 10px;
-                    color: var(--color-text-disabled);
-                    margin-top: 4px;
-                    padding: 0 4px;
-                }
-
-                .chat-input-area {
-                    padding: var(--space-5) var(--space-6);
-                    border-top: 1px solid var(--color-border);
-                    background: rgba(0,0,0,0.1);
-                }
-
-                .chat-empty-state {
-                    height: 100%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--color-text-muted);
-                    gap: var(--space-4);
-                }
-
-                @media (max-width: 1024px) {
-                    .conversations-layout {
-                        grid-template-columns: 1fr;
-                    }
-                    .conversations-list {
-                        display: none; /* En móvil solo mostramos chat o lista, simplificado para ahora */
-                    }
-                    .conversations-list.mobile-visible {
-                        display: flex;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

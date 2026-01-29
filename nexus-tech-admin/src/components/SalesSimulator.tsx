@@ -65,98 +65,66 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
 
     const startSimulation = async () => {
         if (!db) {
-            addLog('Error: Firebase no está inicializado (Modo Demo)')
-            // Simulación local sin Firebase
+            addLog('⚠️ Firebase no detectado. Usando simulación local.')
+            // Simulación local sin Firebase (Fallback)
             setIsThinking(true)
             setTimeout(() => {
                 addLog('✅ IA respondió (Simulado Local)')
                 setIsThinking(false)
                 setStep(2)
-            }, 1000)
+            }, 1500)
             return
         }
 
         setIsThinking(true)
-        addLog('Iniciando simulación de cliente...')
+        addLog('📡 Conectando con Nexus Brain (Cloud Functions)...')
 
         try {
-            // 1. Crear conversación
-            const convRef = await addDoc(collection(db as any, 'conversaciones'), {
-                cliente_id: 'sim_user_' + Date.now(),
-                cliente_nombre: 'Cliente Demo',
-                cliente_telefono: '+57 300 123 4567',
-                plataforma: 'whatsapp',
-                producto_interes_id: selectedProduct.id,
-                producto_nombre: selectedProduct.name,
-                estado: 'activa',
-                historial_chat: [{
-                    rol: 'cliente',
-                    contenido: customerMessage || `Hola, me interesa el ${selectedProduct.name}`,
-                    timestamp: new Date().toISOString()
-                }],
-                pago_confirmado: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+            // 1. Enviar mensaje a la cola
+            const mensajePayload = {
+                plataforma: 'simulador_web',
+                texto: customerMessage || `Hola, me interesa el ${selectedProduct.name}`,
+                sender_id: 'sim_user_' + Date.now().toString().slice(-4),
+                sender_name: 'Cliente Simulador',
+                timestamp: new Date().toISOString(),
+                procesado: false,
+                producto_contexto_id: selectedProduct.id,
+                producto_contexto_nombre: selectedProduct.name
+            }
+
+            const docRef = await addDoc(collection(db as any, 'mensajes_entrantes'), mensajePayload)
+            addLog('✅ Mensaje encolado. ID: ' + docRef.id.slice(0, 6) + '...')
+            addLog('⏳ Esperando respuesta neuronal...')
+
+            // 2. Escuchar la respuesta en tiempo real
+            // Importamos onSnapshot dinámicamente o usamos el de firebase/firestore
+            const { onSnapshot } = await import('firebase/firestore')
+
+            const unsubscribe = onSnapshot(docRef, (snap) => {
+                const data = snap.data()
+                if (data && data.procesado) {
+                    // ¡La IA respondió!
+                    addLog('🧠 Nexus AI ha procesado el mensaje.')
+                    addLog('💬 RESPUESTA: ' + (data.respuesta_generada || 'Sin respuesta texto'))
+
+                    setIsThinking(false)
+                    setStep(2)
+                    unsubscribe() // Dejar de escuchar
+                }
             })
 
-            addLog(`Conversación creada: ${convRef.id}`)
-            addLog('Esperando respuesta de IA...')
-
-            // 2. Simular respuesta IA (Inteligente Local)
-            setTimeout(async () => {
-                let iaResponse = ''
-
-                // A) Buscar en Base de Conocimiento (Simulación Básica de Coincidencias)
-                const msgLower = (customerMessage || '').toLowerCase()
-                let foundAnswer = false
-
-                if (aiConfig?.knowledge_base) {
-                    for (const qa of aiConfig.knowledge_base) {
-                        // Buscamos palabras clave simples de la pregunta en el mensaje del usuario
-                        const palabrasClave = qa.pregunta.toLowerCase().replace(/[¿?]/g, '').split(' ').filter((w: string) => w.length > 3)
-                        const coincide = palabrasClave.some((p: string) => msgLower.includes(p))
-
-                        if (coincide) {
-                            iaResponse = qa.respuesta
-                            foundAnswer = true
-                            addLog('💡 IA encontró respuesta en Base de Conocimiento')
-                            break
-                        }
-                    }
+            // Timeout de seguridad por si la Cloud Function estalla o no hay trigger
+            setTimeout(() => {
+                if (isThinking) { // Si aun sigue pensando despues de 15s
+                    addLog('⚠️ Tiempo de espera agotado. Verifica los Triggers.')
+                    setIsThinking(false)
+                    unsubscribe()
                 }
-
-                // B) Si no hay match en KB, responder con Venta de Producto
-                if (!foundAnswer) {
-                    iaResponse = `¡Hola! 👋 Claro que sí. El ${selectedProduct.name} es una excelente elección. Cuesta $${selectedProduct.price}. ${selectedProduct.description_ia ? selectedProduct.description_ia.substring(0, 50) + '...' : ''} ¿Te gustaría que te envíe el link de pago?`
-                }
-
-                // Actualizar documento para simular respuesta
-                const convDoc = doc(db as any, 'conversaciones', convRef.id)
-                await updateDoc(convDoc, {
-                    historial_chat: [
-                        {
-                            rol: 'cliente',
-                            contenido: customerMessage || `Hola, me interesa el ${selectedProduct.name}`,
-                            timestamp: new Date(Date.now() - 1000).toISOString()
-                        },
-                        {
-                            rol: 'ia',
-                            contenido: iaResponse,
-                            timestamp: new Date().toISOString()
-                        }
-                    ],
-                    estado: 'negociando',
-                    updated_at: new Date().toISOString()
-                })
-
-                addLog('✅ IA respondió (Simulado)')
-                addLog('Revisa el panel de Conversaciones')
-                setIsThinking(false)
-                setStep(2)
-            }, 2500)
+            }, 15000)
 
         } catch (error: any) {
-            addLog(`Error: ${error.message}`)
+            console.error('Simulation error:', error)
+            addLog(`❌ Error: ${error.message}`)
             setIsThinking(false)
         }
     }

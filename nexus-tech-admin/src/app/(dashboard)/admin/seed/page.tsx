@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { db } from '@/lib/firebase'
-import { collection, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore'
-import { Database, Check, AlertCircle, Loader2 } from 'lucide-react'
+import { collection, doc, setDoc, addDoc } from 'firebase/firestore'
+import { Database, Check, AlertCircle, Loader2, Terminal, Code2, ShieldAlert } from 'lucide-react'
 
 export default function SeedPage() {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -28,19 +28,19 @@ export default function SeedPage() {
 
         setStatus('loading')
         setLogs([])
-        addLog('🚀 Iniciando Seed...')
+        addLog('🚀 Iniciando Seed System Protocol...')
 
         // Helper para timeout
         const withTimeout = (promise: Promise<any>, ms: number = 5000) => {
             return Promise.race([
                 promise,
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Tiempo de espera agotado (Timeout) - Firebase no responde")), ms))
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Time-out Error: Firebase is unreachable")), ms))
             ])
         }
 
         try {
             // 1. Configuración IA
-            addLog('📝 Configurando IA (Intentando conectar a Firestore)...')
+            addLog('📝 Configurando IA Core (Firestore)...')
 
             await withTimeout(setDoc(doc(db, 'configuracion_ia', 'default'), {
                 nombre_tienda: 'Nexus Tech',
@@ -61,10 +61,10 @@ export default function SeedPage() {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }))
-            addLog('✅ Configuración IA OK')
+            addLog('✅ AI Core Configured')
 
             // 2. Productos
-            addLog('📦 Creando Productos...')
+            addLog('📦 Generando Inventario Demo...')
             const productos = [
                 {
                     sku: 'ACC-001',
@@ -104,11 +104,11 @@ export default function SeedPage() {
 
             for (const p of productos) {
                 await addDoc(collection(db, 'productos'), p)
-                addLog(`  + Producto: ${p.nombre}`)
+                addLog(`  + Item Inserted: ${p.nombre}`)
             }
 
             // 3. Conversación Demo
-            addLog('💬 Creando Chat Demo...')
+            addLog('💬 Simulando Conversación Histórica...')
             await addDoc(collection(db, 'conversaciones'), {
                 cliente_id: 'demo_user',
                 cliente_nombre: 'Juan Pérez (Demo)',
@@ -124,10 +124,10 @@ export default function SeedPage() {
                 updated_at: new Date().toISOString(),
                 pago_confirmado: false
             })
-            addLog('✅ Chat Demo OK')
+            addLog('✅ Chat Log Created')
 
             setStatus('success')
-            addLog('🎉 ¡SEED COMPLETADO!')
+            addLog('🎉 SYSTEM SEED COMPLETED SUCCESSFULLY')
 
         } catch (error: any) {
             console.error(error)
@@ -137,70 +137,98 @@ export default function SeedPage() {
     }
 
     return (
-        <div className="animate-fade-in p-8 max-w-2xl mx-auto">
-            <div className="card">
-                <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-                    <Database className="text-amber-400" size={24} />
-                    <h1 className="text-xl font-bold">Inicializar Base de Datos (Seed)</h1>
+        <div className="p-4 md:p-8 max-w-4xl mx-auto min-h-[80vh] flex flex-col justify-center">
+            <div className="glass-panel p-0 rounded-2xl overflow-hidden border border-gray-700 shadow-2xl">
+                {/* Header Terminal */}
+                <div className="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Terminal className="text-emerald-500 w-5 h-5" />
+                        <span className="font-mono font-bold text-gray-200">nexus_db_seeder.exe</span>
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-amber-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                    </div>
                 </div>
 
-                {/* Panel de Diagnóstico */}
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6 text-sm">
-                    <h3 className="font-semibold mb-3 text-gray-300">Diagnóstico de Conexión:</h3>
-                    <div className="space-y-2 font-mono">
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">API Key:</span>
-                            {process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?
-                                <span className="text-green-400 flex items-center gap-1"><Check size={14} /> Configurada</span> :
-                                <span className="text-red-400 flex items-center gap-1"><AlertCircle size={14} /> FALTANTE</span>
-                            }
+                <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-black/40">
+
+                    <div>
+                        <div className="flex items-center gap-3 mb-6">
+                            <Database className="text-amber-400 w-8 h-8" />
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">Database Initialization</h1>
+                                <p className="text-gray-400 text-sm">Herramienta de desarrollo y setup</p>
+                            </div>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Auth Domain:</span>
-                            {process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?
-                                <span className="text-green-400 flex items-center gap-1"><Check size={14} /> Configurada</span> :
-                                <span className="text-red-400 flex items-center gap-1"><AlertCircle size={14} /> FALTANTE</span>
-                            }
+
+                        <div className="bg-amber-900/10 border border-amber-500/20 rounded-xl p-4 mb-6 hover:bg-amber-900/20 transition-colors">
+                            <div className="flex gap-3">
+                                <ShieldAlert className="text-amber-500 flex-shrink-0" />
+                                <div className="text-sm text-gray-300">
+                                    <strong className="text-amber-400 block mb-1">Zona de Peligro</strong>
+                                    Esta utilidad escribirá datos de prueba en tu base de datos de producción/desarrollo. Úsala solo al inicializar el proyecto.
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Project ID:</span>
-                            {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?
-                                <span className="text-green-400 flex items-center gap-1"><Check size={14} /> {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</span> :
-                                <span className="text-red-400 flex items-center gap-1"><AlertCircle size={14} /> FALTANTE</span>
-                            }
+
+                        {/* Diagnóstico */}
+                        <div className="space-y-3 font-mono text-sm bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+                            <h3 className="text-gray-400 font-bold mb-2 flex items-center gap-2"><Code2 size={14} /> CONNECTION STATUS</h3>
+
+                            <div className="flex justify-between items-center py-1 border-b border-gray-800">
+                                <span className="text-gray-500">API Key Config</span>
+                                {process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?
+                                    <span className="text-emerald-400 flex items-center gap-1"><Check size={14} /> OK</span> :
+                                    <span className="text-red-400 flex items-center gap-1"><AlertCircle size={14} /> MISSING</span>
+                                }
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-gray-800">
+                                <span className="text-gray-500">Project ID</span>
+                                {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?
+                                    <span className="text-emerald-400 flex items-center gap-1"><Check size={14} /> LINKED</span> :
+                                    <span className="text-red-400 flex items-center gap-1"><AlertCircle size={14} /> UNLINKED</span>
+                                }
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={runSeed}
+                            disabled={status === 'loading'}
+                            className={`mt-6 w-full btn-cyber-primary py-4 text-base font-bold flex items-center justify-center gap-3 ${status === 'loading' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            {status === 'loading' ? (
+                                <><Loader2 className="animate-spin" /> EXECUTING SCRIPT...</>
+                            ) : (
+                                <><Terminal size={18} /> INICIAR PROTOCOLO SEED</>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* Console Output */}
+                    <div className="relative group">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl opacity-20 group-hover:opacity-40 transition duration-1000 blur"></div>
+                        <div className="relative h-full bg-black rounded-xl border border-gray-800 p-4 font-mono text-xs overflow-hidden flex flex-col">
+                            <div className="text-gray-500 mb-2 pb-2 border-b border-gray-900 flex justify-between">
+                                <span>Output Console</span>
+                                <span className="animate-pulse text-emerald-500">● LIVE</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-700 pr-2">
+                                {logs.length === 0 && <span className="text-gray-700 italic">_ Waiting for input commands...</span>}
+                                {logs.map((log, i) => (
+                                    <div key={i} className="text-green-400 border-l-2 border-green-900 pl-2 animate-fade-in">
+                                        <span className="text-green-700 mr-2">{'>'}</span>
+                                        {log}
+                                    </div>
+                                ))}
+                                {status === 'loading' && (
+                                    <div className="text-green-400 animate-pulse">_</div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    {!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && (
-                        <div className="mt-3 p-2 bg-red-500/20 text-red-200 rounded text-xs">
-                            ⚠️ Falta configurar el archivo <strong>.env.local</strong> con tus credenciales de Firebase.
-                        </div>
-                    )}
-                </div>
 
-                <p className="text-gray-400 mb-6">
-                    Esta herramienta poblará tu Firestore con datos de ejemplo:
-                    Configuración IA, 2 Productos y 1 Conversación.
-                    <br /><br />
-                    <strong className="text-red-400">⚠️ Úsala solo en desarrollo o proyecto nuevo.</strong>
-                </p>
-
-                <button
-                    onClick={runSeed}
-                    disabled={status === 'loading'}
-                    className={`btn w-full ${status === 'loading' ? 'btn--disabled' : 'btn--primary'}`}
-                >
-                    {status === 'loading' ? (
-                        <><Loader2 className="animate-spin mr-2" /> Ejecutando...</>
-                    ) : (
-                        <><Database className="mr-2" /> Poblar Base de Datos</>
-                    )}
-                </button>
-
-                <div className="mt-6 bg-black/50 rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs border border-white/10">
-                    {logs.length === 0 && <span className="text-gray-600">Esperando ejecución...</span>}
-                    {logs.map((log, i) => (
-                        <div key={i} className="mb-1 text-green-400">{log}</div>
-                    ))}
                 </div>
             </div>
         </div>

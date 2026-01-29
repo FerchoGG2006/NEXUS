@@ -65,178 +65,105 @@ export function Sidebar() {
             {/* Mobile toggle button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="mobile-menu-btn"
+                className="fixed top-4 left-4 z-50 p-2 glass-panel rounded-lg text-white md:hidden hover:text-cyan-400 transition-colors"
                 aria-label="Toggle menu"
             >
-                {isOpen ? <X /> : <Menu />}
+                {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
 
             {/* Overlay for mobile */}
             {isOpen && (
                 <div
-                    className="sidebar-overlay"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
-            <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-                {/* Logo */}
-                <div className="sidebar-logo">
-                    <div className="sidebar-logo-icon">
-                        <Sparkles style={{ width: '24px', height: '24px' }} />
+            {/* Sidebar Container */}
+            <aside
+                className={`fixed top-4 bottom-4 left-4 w-64 glass-panel rounded-2xl z-50 flex flex-col transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-[120%]'
+                    }`}
+            >
+                {/* Logo Section */}
+                <div className="p-6 flex items-center gap-3 border-b border-[var(--glass-border)]">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--neon-purple)] to-[var(--neon-cyan)] flex items-center justify-center shadow-[0_0_15px_var(--neon-cyan-glow)]">
+                        <Sparkles className="text-white w-6 h-6 animate-pulse" />
                     </div>
                     <div>
-                        <span className="sidebar-logo-text">NEXUS</span>
-                        <span className="sidebar-logo-subtitle">AUTO-SALES</span>
+                        <h1 className="font-bold text-xl tracking-wider text-white">NEXUS</h1>
+                        <p className="text-[10px] font-mono text-[var(--neon-cyan)] tracking-[0.2em]">AUTO-SALES</p>
                     </div>
                 </div>
 
-                {/* Navigation */}
-                <nav className="sidebar-nav">
+                {/* Navigation Scroll Area */}
+                <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
                     {navItems.map((item, index) => {
                         if (item.type === 'divider') {
                             return (
-                                <div key={index} className="sidebar-divider">
-                                    <span>{item.label}</span>
+                                <div key={index} className="px-4 mt-6 mb-2">
+                                    <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold font-mono">
+                                        {item.label}
+                                    </span>
                                 </div>
                             )
                         }
 
                         const Icon = item.icon!
                         const isActive = pathname === item.href
+
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href!}
-                                className={`sidebar-link ${isActive ? 'active' : ''}`}
                                 onClick={() => setIsOpen(false)}
+                                className={`
+                                    relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
+                                    ${isActive
+                                        ? 'text-white bg-gradient-to-r from-[rgba(139,92,246,0.15)] to-transparent'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }
+                                `}
                             >
-                                <Icon />
-                                <span>{item.label}</span>
+                                {/* Active Indicator Line */}
+                                {isActive && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[var(--neon-cyan)] rounded-r-full shadow-[0_0_10px_var(--neon-cyan)]" />
+                                )}
+
+                                <Icon
+                                    size={18}
+                                    className={`transition-colors ${isActive ? 'text-[var(--neon-cyan)]' : 'group-hover:text-[var(--neon-purple)]'}`}
+                                />
+                                <span className={`text-sm font-medium ${isActive ? 'tracking-wide' : ''}`}>
+                                    {item.label}
+                                </span>
+
                                 {item.badge && (
-                                    <span className="sidebar-badge">{item.badge}</span>
+                                    <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-[rgba(16,185,129,0.2)] text-[var(--neon-green)] border border-[rgba(16,185,129,0.3)] rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                        {item.badge}
+                                    </span>
                                 )}
                             </Link>
                         )
                     })}
                 </nav>
 
-                {/* Footer with User & Logout */}
-                <div className="sidebar-footer">
+                {/* User/Footer Section */}
+                <div className="p-4 border-t border-[var(--glass-border)] bg-black/20 rounded-b-2xl">
                     {user && (
-                        <div className="sidebar-user">
-                            <p className="sidebar-user-label">Sesión activa</p>
-                            <p className="sidebar-user-email">{user.email}</p>
+                        <div className="mb-3 px-2">
+                            <p className="text-[10px] uppercase text-gray-500 tracking-wider mb-1">Operador Conectado</p>
+                            <p className="text-xs text-white font-mono truncate">{user.email}</p>
                         </div>
                     )}
                     <button
                         onClick={handleLogout}
-                        className="sidebar-link sidebar-logout"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all text-sm font-medium"
                     >
-                        <LogOut />
-                        <span>Cerrar sesión</span>
+                        <LogOut size={16} />
+                        <span>DESCONECTAR</span>
                     </button>
                 </div>
             </aside>
-
-            <style>{`
-                .mobile-menu-btn {
-                    display: none;
-                    position: fixed;
-                    top: 20px;
-                    left: 20px;
-                    z-index: 150;
-                    width: 44px;
-                    height: 44px;
-                    border-radius: var(--radius-md);
-                    background: var(--color-bg-card);
-                    border: 1px solid var(--color-border);
-                    color: var(--color-text-primary);
-                    cursor: pointer;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .sidebar-overlay {
-                    display: none;
-                    position: fixed;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.6);
-                    z-index: 90;
-                }
-
-                .sidebar-logo-subtitle {
-                    display: block;
-                    font-size: 0.65rem;
-                    font-weight: 600;
-                    color: var(--color-accent-cyan);
-                    letter-spacing: 0.15em;
-                    margin-top: -2px;
-                }
-
-                .sidebar-divider {
-                    padding: var(--space-5) var(--space-4) var(--space-2);
-                    margin-top: var(--space-2);
-                }
-
-                .sidebar-divider span {
-                    font-size: 0.65rem;
-                    font-weight: 700;
-                    color: var(--color-text-disabled);
-                    letter-spacing: 0.12em;
-                    text-transform: uppercase;
-                }
-
-                .sidebar-badge {
-                    margin-left: auto;
-                    padding: 2px 8px;
-                    font-size: 0.6rem;
-                    font-weight: 700;
-                    background: linear-gradient(135deg, var(--color-accent-emerald), var(--color-accent-cyan));
-                    color: white;
-                    border-radius: var(--radius-full);
-                    animation: pulse 2s infinite;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                }
-
-                .sidebar-logout {
-                    width: 100%;
-                    color: #f87171 !important;
-                    cursor: pointer;
-                    background: transparent;
-                    border: none;
-                    font-family: inherit;
-                    font-size: var(--font-size-sm);
-                    text-align: left;
-                }
-
-                .sidebar-logout:hover {
-                    background: rgba(244, 114, 114, 0.1) !important;
-                }
-
-                @media (max-width: 1024px) {
-                    .mobile-menu-btn {
-                        display: flex;
-                    }
-
-                    .sidebar-overlay {
-                        display: block;
-                    }
-
-                    .sidebar {
-                        transform: translateX(-100%);
-                    }
-
-                    .sidebar.open {
-                        transform: translateX(0);
-                    }
-                }
-            `}</style>
         </>
     )
 }

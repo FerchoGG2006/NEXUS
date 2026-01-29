@@ -1,510 +1,152 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, BarChart3, Package, Users, Zap, Bot, Globe, ShieldCheck, ChevronRight } from 'lucide-react'
+import { ArrowRight, BarChart3, Package, Users, Bot, Check, Zap } from 'lucide-react'
 
 export default function HomePage() {
   return (
-    <main className="landing-container">
+    <main className="min-h-screen bg-[#030712] text-white relative overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Background Ambience */}
-      <div className="ambient-glow glow-1" />
-      <div className="ambient-glow glow-2" />
-      <div className="grid-overlay" />
+      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-0 right-[-100px] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] pointer-events-none" />
 
       {/* Navbar */}
-      <nav className="navbar">
-        <div className="logo-container">
-          <div className="logo-icon">N</div>
-          <span className="logo-text">NEXUS <span className="logo-highlight">AUTO-SALES</span></span>
+      <nav className="flex justify-between items-center px-6 md:px-12 py-6 relative z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+            N
+          </div>
+          <span className="text-xl font-bold tracking-tight">
+            NEXUS <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">AUTO-SALES</span>
+          </span>
         </div>
-        <div className="nav-links">
-          <Link href="/login" className="btn btn--secondary btn--sm">Admin Login</Link>
+        <div className="flex gap-4">
+          <Link href="/login" className="px-5 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-sm font-medium backdrop-blur-md">
+            Admin Login
+          </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-content">
-          <div className="badge-new">
-            <span className="badge-dot"></span> v2.0 Ahora con Agente IA
+      <section className="relative z-10 px-6 md:px-12 py-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="text-center lg:text-left mx-auto lg:mx-0 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
+            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_10px_#4ade80] animate-pulse"></span>
+            <span className="text-sm text-gray-300 font-medium">v2.0 Ahora con Agente IA</span>
           </div>
-          <h1 className="hero-title">
+
+          <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.1] mb-6 tracking-tight">
             El Futuro del <br />
-            <span className="text-gradient">Comercio Autónomo</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+              Comercio Autónomo
+            </span>
           </h1>
-          <p className="hero-subtitle">
+
+          <p className="text-lg text-gray-400 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
             Automatiza tu inventario, gestiona afiliados y deja que nuestra IA cierre ventas por ti en WhatsApp y Facebook.
             El primer CRM diseñado para funcionar solo.
           </p>
 
-          <div className="hero-cta">
-            <Link href="/dashboard" className="btn btn--primary btn--lg icon-hover">
-              Entrar al Dashboard <ArrowRight size={20} />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <Link href="/dashboard" className="btn-cyber-primary px-8 py-4 text-lg font-bold flex items-center justify-center gap-2 rounded-xl group">
+              Entrar al Dashboard
+              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/login" className="btn btn--glass btn--lg">
+            <Link href="/login" className="px-8 py-4 text-lg font-medium rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-md text-center">
               Ver Documentación
             </Link>
           </div>
         </div>
 
         {/* Hero Visual / Dashboard Preview */}
-        <div className="hero-visual">
-          <div className="visual-card main-card">
-            <div className="card-header-fake">
-              <div className="dots"><span></span><span></span><span></span></div>
-              <div className="bar">nexus-assistant.exe</div>
+        <div className="relative h-[500px] hidden lg:flex items-center justify-center perspective-[1000px]">
+          {/* Main Card */}
+          <div className="w-[420px] bg-gray-900/80 backdrop-blur-xl border border-indigo-500/30 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_80px_rgba(99,102,241,0.15)] overflow-hidden transform -rotate-y-6 rotate-x-6 hover:rotate-0 transition-transform duration-500 ease-out">
+            <div className="bg-gray-950/50 px-4 py-3 border-b border-white/5 flex items-center justify-between">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+              </div>
+              <div className="text-[10px] font-mono text-gray-500">nexus-assistant.exe</div>
             </div>
-            <div className="chat-preview">
-              <div className="msg ia">
+
+            <div className="p-6 space-y-4 font-sans text-sm">
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl rounded-bl-sm text-indigo-100 max-w-[85%]">
                 Hola, veo que te interesa el iPhone 15. 📱
               </div>
-              <div className="msg user">
+              <div className="p-3 bg-gray-800 rounded-xl rounded-br-sm text-gray-200 self-end max-w-[85%] ml-auto">
                 Sí, ¿qué precio tiene?
               </div>
-              <div className="msg ia">
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl rounded-bl-sm text-indigo-100 max-w-[90%]">
                 Cuesta $999 USD. Si te lo envío hoy, te llega mañana. ¿Te genero el link de pago? 🚀
               </div>
-              <div className="status-pill">
-                <span className="pulse"></span> IA Negociando...
+
+              <div className="flex items-center gap-2 text-xs text-green-400 pt-4">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_currentColor]"></span>
+                <span className="font-mono">IA Negociando...</span>
               </div>
             </div>
           </div>
-          <div className="visual-card floating-card card-1">
-            <BarChart3 size={24} color="#4ade80" />
+
+          {/* Floating Cards */}
+          <div className="absolute top-10 right-0 p-4 bg-gray-900/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex items-center gap-4 animate-[float_6s_ease-in-out_infinite]">
+            <div className="p-2 bg-green-500/20 rounded-lg text-green-400"><BarChart3 size={24} /></div>
             <div>
-              <div className="text-xs text-muted">Ventas Hoy</div>
-              <div className="font-bold">$1,240.50</div>
+              <p className="text-xs text-gray-500 uppercase font-bold">Ventas Hoy</p>
+              <p className="text-lg font-bold text-white">$1,240.50</p>
             </div>
           </div>
-          <div className="visual-card floating-card card-2">
-            <Bot size={24} color="#a78bfa" />
+
+          <div className="absolute bottom-20 left-0 p-4 bg-gray-900/90 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl flex items-center gap-4 animate-[float_6s_ease-in-out_infinite_3s]">
+            <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400"><Bot size={24} /></div>
             <div>
-              <div className="text-xs text-muted">IA Activa</div>
-              <div className="font-bold">24 Chats</div>
+              <p className="text-xs text-gray-500 uppercase font-bold">IA Activa</p>
+              <p className="text-lg font-bold text-white">24 Chats</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="features">
-        <h2 className="section-title">Todo lo que necesitas para escalar</h2>
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="icon-box color-cyan"><BarChart3 size={24} /></div>
-            <h3>Dashboard Real-Time</h3>
-            <p>Métricas en vivo de ventas, inventario y rendimiento de afiliados sin refrescar la página.</p>
-          </div>
-          <div className="feature-card">
-            <div className="icon-box color-violet"><Bot size={24} /></div>
-            <h3>Vendedor IA 24/7</h3>
-            <p>Nuestra IA aprende de tus políticas y cierra ventas automáticamente mientras duermes.</p>
-          </div>
-          <div className="feature-card">
-            <div className="icon-box color-amber"><Package size={24} /></div>
-            <h3>Inventario Sincronizado</h3>
-            <p>Control total de stock. Si se vende por WhatsApp, se descuenta de la web al instante.</p>
-          </div>
-          <div className="feature-card">
-            <div className="icon-box color-rose"><Users size={24} /></div>
-            <h3>Red de Afiliados</h3>
-            <p>Gestiona comisiones y pagos para tus vendedores externos desde un solo lugar.</p>
-          </div>
+      <section className="relative z-10 px-6 md:px-12 py-24 max-w-7xl mx-auto">
+        <h2 className="text-3xl md:text-5xl font-bold text-center mb-16">Todo lo que necesitas para escalar</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { icon: BarChart3, color: "text-cyan-400 bg-cyan-400/10", title: "Dashboard Real-Time", desc: "Métricas en vivo de ventas, inventario y rendimiento sin refrescar." },
+            { icon: Bot, color: "text-purple-400 bg-purple-400/10", title: "Vendedor IA 24/7", desc: "Nuestra IA aprende de tus políticas y cierra ventas mientras duermes." },
+            { icon: Package, color: "text-amber-400 bg-amber-400/10", title: "Inventario Sincronizado", desc: "Si se vende por WhatsApp, se descuenta de la web al instante." },
+            { icon: Users, color: "text-rose-400 bg-rose-400/10", title: "Red de Afiliados", desc: "Gestiona comisiones y pagos para tus vendedores externos." }
+          ].map((feature, i) => (
+            <div key={i} className="bg-white/[0.03] border border-white/5 p-8 rounded-3xl hover:bg-white/[0.05] hover:-translate-y-1 hover:border-indigo-500/30 transition-all group">
+              <div className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <feature.icon size={28} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+              <p className="text-gray-400 leading-relaxed text-sm">{feature.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="logo-container">
-            <div className="logo-icon small">N</div>
-            <span className="logo-text text-sm">NEXUS TECH</span>
+      <footer className="border-t border-white/5 bg-[#020617] relative z-10">
+        <div className="px-6 md:px-12 py-12 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center font-bold text-sm shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+              N
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-gray-300">NEXUS TECH</span>
           </div>
-          <div className="footer-links">
+          <div className="flex gap-6 text-sm text-gray-500">
             <span>© 2026 Nexus Tech-Admin</span>
-            <span className="divider">|</span>
-            <a href="#">Privacidad</a>
-            <a href="#">Términos</a>
+            <span className="text-gray-700">|</span>
+            <a href="#" className="hover:text-white transition-colors">Privacidad</a>
+            <a href="#" className="hover:text-white transition-colors">Términos</a>
           </div>
         </div>
       </footer>
-
-      <style jsx global>{`
-        /* Reset & Base */
-        .landing-container {
-            min-height: 100vh;
-            background-color: #030712;
-            color: white;
-            position: relative;
-            overflow-x: hidden;
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Ambient Background */
-        .ambient-glow {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            z-index: 0;
-            opacity: 0.4;
-        }
-        .glow-1 {
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, transparent 70%);
-            top: -100px;
-            left: -100px;
-        }
-        .glow-2 {
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
-            bottom: 0;
-            right: -100px;
-        }
-        .grid-overlay {
-            position: absolute;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        /* Navbar */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px 48px;
-            position: relative;
-            z-index: 50;
-        }
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #4f46e5, #9333ea);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 20px;
-            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-        }
-        .logo-icon.small { width: 32px; height: 32px; font-size: 16px; }
-        .logo-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        .logo-highlight {
-            background: linear-gradient(to right, #a78bfa, #2dd4bf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Content Sections */
-        .hero {
-            position: relative;
-            z-index: 10;
-            padding: 80px 48px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .hero-content {
-            max-width: 600px;
-        }
-
-        .badge-new {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 100px;
-            font-size: 0.875rem;
-            color: #d1d5db;
-            margin-bottom: 24px;
-        }
-        .badge-dot {
-            width: 8px;
-            height: 8px;
-            background: #4ade80;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #4ade80;
-        }
-
-        .hero-title {
-            font-size: 4rem;
-            line-height: 1.1;
-            font-weight: 800;
-            margin-bottom: 24px;
-            letter-spacing: -1px;
-        }
-        .text-gradient {
-            background: linear-gradient(to right, #818cf8, #c084fc, #38bdf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero-subtitle {
-            font-size: 1.125rem;
-            line-height: 1.6;
-            color: #9ca3af;
-            margin-bottom: 40px;
-        }
-
-        .hero-cta {
-            display: flex;
-            gap: 16px;
-        }
-
-        /* Buttons */
-        .btn--glass {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            backdrop-filter: blur(10px);
-        }
-        .btn--glass:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .btn--lg {
-            padding: 14px 28px;
-            font-size: 1rem;
-        }
-        .icon-hover svg {
-            transition: transform 0.2s;
-        }
-        .icon-hover:hover svg {
-            transform: translateX(4px);
-        }
-
-        /* Hero Visual */
-        .hero-visual {
-            position: relative;
-            height: 500px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            perspective: 1000px;
-        }
-
-        .visual-card {
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .main-card {
-            width: 400px;
-            height: 300px;
-            transform: rotateY(-5deg) rotateX(5deg);
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #6366f1;
-            box-shadow: 0 0 80px rgba(99, 102, 241, 0.15);
-        }
-
-        .card-header-fake {
-            background: rgba(0,0,0,0.3);
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .dots { display: flex; gap: 6px; }
-        .dots span { width: 10px; height: 10px; border-radius: 50%; background: #374151; }
-        .dots span:nth-child(1) { background: #ef4444; }
-        .dots span:nth-child(2) { background: #f59e0b; }
-        .dots span:nth-child(3) { background: #10b981; }
-        .bar { font-family: monospace; font-size: 10px; color: #6b7280; }
-
-        .chat-preview {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            font-size: 0.875rem;
-        }
-        .msg {
-            padding: 10px 14px;
-            border-radius: 12px;
-            max-width: 85%;
-            line-height: 1.4;
-        }
-        .msg.ia {
-            background: rgba(99, 102, 241, 0.15);
-            color: #e0e7ff;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-        }
-        .msg.user {
-            background: #374151;
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 2px;
-        }
-
-        .status-pill {
-            margin-top: auto;
-            align-self: flex-start;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: #4ade80;
-            padding: 6px 12px;
-            background: rgba(74, 222, 128, 0.1);
-            border-radius: 50px;
-        }
-        .pulse {
-            width: 8px;
-            height: 8px;
-            background: #4ade80;
-            border-radius: 50%;
-            animation: pulse-dot 1.5s infinite;
-        }
-
-        .floating-card {
-            position: absolute;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            min-width: 180px;
-            animation: float 6s ease-in-out infinite;
-        }
-        .card-1 { top: 60px; right: -20px; animation-delay: 0s; }
-        .card-2 { bottom: 80px; left: -40px; animation-delay: 3s; }
-
-        /* Features */
-        .features {
-            padding: 80px 48px;
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 10;
-        }
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 60px;
-            font-weight: 700;
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-        }
-        .feature-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 32px;
-            border-radius: 24px;
-            transition: all 0.3s;
-        }
-        .feature-card:hover {
-            background: rgba(255,255,255,0.05);
-            transform: translateY(-5px);
-            border-color: rgba(99, 102, 241, 0.3);
-        }
-        .icon-box {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            background: rgba(255,255,255,0.05);
-        }
-        .color-cyan { color: #22d3ee; background: rgba(34, 211, 238, 0.1); }
-        .color-violet { color: #a78bfa; background: rgba(167, 139, 250, 0.1); }
-        .color-amber { color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
-        .color-rose { color: #fb7185; background: rgba(251, 113, 133, 0.1); }
-
-        .feature-card h3 {
-            font-size: 1.25rem;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-        .feature-card p {
-            color: #9ca3af;
-            line-height: 1.6;
-        }
-
-        /* Footer */
-        .footer {
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding: 40px 48px;
-            background: #020617;
-            position: relative;
-            z-index: 10;
-        }
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .footer-links {
-            display: flex;
-            gap: 16px;
-            color: #6b7280;
-            font-size: 0.875rem;
-            align-items: center;
-        }
-        .footer-links a:hover { color: white; }
-        .divider { color: #374151; }
-
-        /* Animations */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0px); }
-        }
-        @keyframes pulse-dot {
-            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
-            70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
-        }
-
-        /* Mobile */
-        @media (max-width: 1024px) {
-            .hero { grid-template-columns: 1fr; text-align: center; padding: 40px 24px; }
-            .hero-content { margin: 0 auto; }
-            .hero-cta { justify-content: center; }
-            .hero-visual { display: none; }
-            .navbar { padding: 20px 24px; }
-            .hero-title { font-size: 2.5rem; }
-            .features-grid { grid-template-columns: 1fr; }
-            .footer-content { flex-direction: column; gap: 20px; }
-        }
-      `}</style>
     </main>
   )
 }

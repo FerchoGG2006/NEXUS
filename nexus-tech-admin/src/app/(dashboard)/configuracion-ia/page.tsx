@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getConfiguracionIA, updateConfiguracionIA, isFirebaseConfigured } from '@/lib/firebase'
-import { Bot, Save, Key, Bell, Clock, MessageSquare, Sparkles, AlertCircle, BookOpen, Plus, Trash2, HelpCircle } from 'lucide-react'
+import { Bot, Save, Key, Bell, Clock, MessageSquare, Sparkles, AlertCircle, BookOpen, Plus, Trash2, HelpCircle, Terminal, Cpu, ShieldCheck } from 'lucide-react'
 
 interface QAItem {
     pregunta: string
@@ -122,28 +122,29 @@ export default function ConfiguracionIAPage() {
 
     if (isLoading) {
         return (
-            <div className="animate-fade-in">
-                <header className="page-header">
-                    <div>
-                        <div className="skeleton" style={{ height: '36px', width: '300px', marginBottom: '12px' }} />
-                        <div className="skeleton" style={{ height: '20px', width: '400px' }} />
-                    </div>
-                </header>
-                <div className="skeleton" style={{ height: '400px', borderRadius: 'var(--radius-xl)' }} />
+            <div className="space-y-6 animate-pulse">
+                <div className="h-20 bg-white/5 rounded-xl w-full"></div>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="h-64 bg-white/5 rounded-xl"></div>
+                    <div className="h-64 bg-white/5 rounded-xl"></div>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="space-y-8 animate-fade-in pb-12">
             {/* Page Header */}
-            <header className="page-header">
+            <header className="flex justify-between items-center border-b border-white/5 pb-6">
                 <div>
-                    <h1 className="page-title">Configuración del Agente IA</h1>
-                    <p className="page-subtitle">Personaliza el comportamiento del vendedor autónomo</p>
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <Cpu className="text-[var(--neon-purple)] w-8 h-8 animate-pulse-slow" />
+                        Configuración Neural
+                    </h1>
+                    <p className="text-gray-400 text-sm mt-1">Calibración de parámetros del Agente Autónomo</p>
                 </div>
                 <button
-                    className="btn btn--primary"
+                    className="btn-cyber-primary px-6 py-2 rounded-lg flex items-center gap-2 hover:scale-105 transition-transform"
                     onClick={handleSave}
                     disabled={isSaving}
                 >
@@ -151,8 +152,8 @@ export default function ConfiguracionIAPage() {
                         <>Guardando...</>
                     ) : (
                         <>
-                            <Save style={{ width: '18px', height: '18px' }} />
-                            Guardar Cambios
+                            <Save size={18} />
+                            GUARDAR PARÁMETROS
                         </>
                     )}
                 </button>
@@ -160,204 +161,221 @@ export default function ConfiguracionIAPage() {
 
             {/* Mensaje */}
             {mensaje && (
-                <div className={`alert alert--${mensaje.tipo === 'success' ? 'success' : 'danger'}`}>
-                    {mensaje.tipo === 'success' ? <Sparkles /> : <AlertCircle />}
-                    <div className="alert-content">
-                        <div className="alert-message">{mensaje.texto}</div>
-                    </div>
+                <div className={`p-4 rounded-xl border flex items-center gap-3 ${mensaje.tipo === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                        : 'bg-red-500/10 border-red-500/30 text-red-400'
+                    }`}>
+                    {mensaje.tipo === 'success' ? <Sparkles size={20} /> : <AlertCircle size={20} />}
+                    <div className="font-medium">{mensaje.texto}</div>
                 </div>
             )}
 
-            <div className="config-grid">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Identidad de la Tienda */}
-                <section className="card config-section">
-                    <div className="config-section-header">
-                        <Bot style={{ width: '24px', height: '24px', color: 'var(--color-primary-light)' }} />
-                        <h2>Identidad de la Tienda</h2>
+                <section className="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--neon-purple)]/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <Bot className="text-[var(--neon-purple)]" size={24} />
+                        <h2 className="text-xl font-bold text-white">Identidad Digital</h2>
                     </div>
 
-                    <div className="form-row">
-                        <label className="label">Nombre de la Tienda</label>
-                        <input
-                            type="text"
-                            className="input"
-                            value={config.nombre_tienda}
-                            onChange={(e) => updateField('nombre_tienda', e.target.value)}
-                            placeholder="Ej: Nexus Tech"
-                        />
-                    </div>
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Nombre de la Tienda</label>
+                            <input
+                                type="text"
+                                className="input-cyber w-full"
+                                value={config.nombre_tienda}
+                                onChange={(e) => updateField('nombre_tienda', e.target.value)}
+                                placeholder="Ej: Nexus Tech"
+                            />
+                        </div>
 
-                    <div className="form-row">
-                        <label className="label">Tono del Vendedor</label>
-                        <select
-                            className="input select"
-                            value={config.tono_vendedor}
-                            onChange={(e) => updateField('tono_vendedor', e.target.value)}
-                        >
-                            <option value="profesional">Profesional</option>
-                            <option value="amigable">Amigable</option>
-                            <option value="persuasivo">Persuasivo</option>
-                        </select>
-                        <p className="form-help">Define la personalidad del agente de ventas</p>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Tono del Vendedor</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['profesional', 'amigable', 'persuasivo'].map((tono) => (
+                                    <button
+                                        key={tono}
+                                        onClick={() => updateField('tono_vendedor', tono)}
+                                        className={`px-3 py-2 rounded-lg border text-sm capitalize transition-all ${config.tono_vendedor === tono
+                                                ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                                                : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/30'
+                                            }`}
+                                    >
+                                        {tono}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </section>
 
                 {/* API Key */}
-                <section className="card config-section">
-                    <div className="config-section-header">
-                        <Key style={{ width: '24px', height: '24px', color: 'var(--color-accent-amber)' }} />
-                        <h2>OpenAI API Key</h2>
+                <section className="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--neon-green)]/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <Key className="text-[var(--neon-green)]" size={24} />
+                        <h2 className="text-xl font-bold text-white">Credenciales API</h2>
                     </div>
 
-                    <div className="form-row">
-                        <label className="label">API Key de OpenAI</label>
-                        <div style={{ position: 'relative' }}>
+                    <div className="space-y-1">
+                        <label className="text-xs text-gray-400 uppercase tracking-wider">OpenAI API Key (GPT-4o)</label>
+                        <div className="relative">
                             <input
                                 type={showApiKey ? 'text' : 'password'}
-                                className="input"
+                                className="input-cyber w-full pr-24 font-mono text-[var(--neon-green)]"
                                 value={config.openai_api_key}
                                 onChange={(e) => updateField('openai_api_key', e.target.value)}
                                 placeholder="sk-..."
                             />
                             <button
                                 type="button"
-                                className="btn btn--ghost btn--sm"
-                                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-gray-300 transition-colors"
                                 onClick={() => setShowApiKey(!showApiKey)}
                             >
-                                {showApiKey ? 'Ocultar' : 'Mostrar'}
+                                {showApiKey ? 'OCULTAR' : 'MOSTRAR'}
                             </button>
                         </div>
-                        <p className="form-help">Tu agente funciona con GPT-4o. Pega tu key aquí.</p>
-                    </div>
-                </section>
-
-                {/* Base de Conocimiento (NUEVO) */}
-                <section className="card config-section full-width">
-                    <div className="config-section-header">
-                        <BookOpen style={{ width: '24px', height: '24px', color: 'var(--color-accent-violet)' }} />
-                        <h2>Base de Conocimiento IA</h2>
-                    </div>
-
-                    <p className="section-description">
-                        Enséñale a tu IA sobre políticas, envíos y garantías. Estas respuestas tendrán prioridad sobre el conocimiento general.
-                    </p>
-
-                    <div className="qa-container">
-                        <div className="qa-list">
-                            {config.knowledge_base?.map((qa, index) => (
-                                <div key={index} className="qa-item">
-                                    <div className="qa-content">
-                                        <div className="qa-question">
-                                            <HelpCircle size={16} /> <span>{qa.pregunta}</span>
-                                        </div>
-                                        <div className="qa-answer">{qa.respuesta}</div>
-                                    </div>
-                                    <button
-                                        className="btn btn--ghost btn--icon delete-qa"
-                                        onClick={() => handleDeleteQA(index)}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            ))}
-                            {(!config.knowledge_base || config.knowledge_base.length === 0) && (
-                                <div className="qa-empty">No hay preguntas frecuentes configuradas.</div>
-                            )}
-                        </div>
-
-                        <div className="qa-form">
-                            <input
-                                type="text"
-                                className="input"
-                                placeholder="Pregunta (ej: ¿Tienen garantía?)"
-                                value={newQA.pregunta}
-                                onChange={e => setNewQA(prev => ({ ...prev, pregunta: e.target.value }))}
-                            />
-                            <input
-                                type="text"
-                                className="input"
-                                placeholder="Respuesta de la IA"
-                                value={newQA.respuesta}
-                                onChange={e => setNewQA(prev => ({ ...prev, respuesta: e.target.value }))}
-                                onKeyDown={e => e.key === 'Enter' && handleAddQA()}
-                            />
-                            <button
-                                className="btn btn--secondary"
-                                onClick={handleAddQA}
-                                disabled={!newQA.pregunta || !newQA.respuesta}
-                            >
-                                <Plus size={18} /> Agregar
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Prompt del Sistema */}
-                <section className="card config-section full-width">
-                    <div className="config-section-header">
-                        <Sparkles style={{ width: '24px', height: '24px', color: 'var(--color-secondary)' }} />
-                        <h2>Instrucciones Avanzadas (Prompt)</h2>
-                    </div>
-
-                    <div className="form-row">
-                        <label className="label">System Prompt</label>
-                        <textarea
-                            className="input"
-                            rows={10}
-                            value={config.prompt_sistema}
-                            onChange={(e) => updateField('prompt_sistema', e.target.value)}
-                            style={{ fontFamily: 'monospace', fontSize: 'var(--font-size-sm)' }}
-                        />
-                        <p className="form-help">
-                            Define reglas estrictas, personalidad y límites del agente.
+                        <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+                            <ShieldCheck size={12} /> Tus llaves están encriptadas en local.
                         </p>
                     </div>
                 </section>
 
-                {/* Mensajes Predefinidos */}
-                <section className="card config-section full-width">
-                    <div className="config-section-header">
-                        <MessageSquare style={{ width: '24px', height: '24px', color: 'var(--color-accent-cyan)' }} />
-                        <h2>Respuestas Automáticas</h2>
+                {/* Prompt del Sistema */}
+                <section className="glass-panel p-6 rounded-2xl lg:col-span-2 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none group-hover:bg-blue-500/10 transition-all"></div>
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <Terminal className="text-blue-400" size={24} />
+                        <h2 className="text-xl font-bold text-white">System Prompt (Núcleo)</h2>
                     </div>
 
-                    <div className="form-grid-2">
-                        <div className="form-row">
-                            <label className="label">Bienvenida</label>
+                    <div className="space-y-2">
+                        <div className="bg-black/80 rounded-t-lg p-2 flex gap-2 items-center border border-white/10 border-b-0">
+                            <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                            <span className="text-xs text-gray-500 font-mono ml-2">system_config.yaml</span>
+                        </div>
+                        <textarea
+                            className="w-full bg-black/50 border border-white/10 rounded-b-lg p-4 font-mono text-sm text-gray-300 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all min-h-[300px]"
+                            value={config.prompt_sistema}
+                            onChange={(e) => updateField('prompt_sistema', e.target.value)}
+                            spellCheck={false}
+                        />
+                        <p className="text-xs text-gray-500">
+                            Define las reglas "hard-coded" del comportamiento de la IA. Instrucciones claras generan mejores resultados.
+                        </p>
+                    </div>
+                </section>
+
+                {/* Base de Conocimiento (NUEVO) */}
+                <section className="glass-panel p-6 rounded-2xl lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <BookOpen className="text-[var(--neon-cyan)]" size={24} />
+                        <h2 className="text-xl font-bold text-white">Base de Conocimiento (RAG Light)</h2>
+                    </div>
+
+                    <p className="text-sm text-gray-400 mb-6 bg-[var(--neon-cyan)]/5 p-3 rounded-lg border border-[var(--neon-cyan)]/20">
+                        Enséñale a tu IA sobre políticas, envíos y garantías. Estas respuestas tendrán prioridad sobre el conocimiento general (LLM).
+                    </p>
+
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {config.knowledge_base?.map((qa, index) => (
+                                <div key={index} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-[var(--neon-cyan)]/30 transition-colors group relative">
+                                    <div className="flex items-start gap-3">
+                                        <HelpCircle className="text-[var(--neon-cyan)] mt-1 flex-shrink-0" size={16} />
+                                        <div>
+                                            <p className="font-bold text-white text-sm mb-1">{qa.pregunta}</p>
+                                            <p className="text-gray-400 text-xs leading-relaxed">{qa.respuesta}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="absolute top-2 right-2 p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                        onClick={() => handleDeleteQA(index)}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!config.knowledge_base || config.knowledge_base.length === 0) && (
+                                <div className="text-center py-8 text-gray-500 italic col-span-2 border border-dashed border-white/10 rounded-xl">
+                                    No hay conocimiento experto configurado.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-black/30 p-4 rounded-xl border border-white/10 flex flex-col md:flex-row gap-3 items-end">
+                            <div className="flex-1 w-full space-y-1">
+                                <label className="text-[10px] text-gray-500 uppercase">Nueva Pregunta</label>
+                                <input
+                                    type="text"
+                                    className="input-cyber w-full text-sm"
+                                    placeholder="¿Tienen garantía?"
+                                    value={newQA.pregunta}
+                                    onChange={e => setNewQA(prev => ({ ...prev, pregunta: e.target.value }))}
+                                />
+                            </div>
+                            <div className="flex-[2] w-full space-y-1">
+                                <label className="text-[10px] text-gray-500 uppercase">Respuesta Esperada</label>
+                                <input
+                                    type="text"
+                                    className="input-cyber w-full text-sm"
+                                    placeholder="Sí, de 1 año por defectos de fábrica..."
+                                    value={newQA.respuesta}
+                                    onChange={e => setNewQA(prev => ({ ...prev, respuesta: e.target.value }))}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddQA()}
+                                />
+                            </div>
+                            <button
+                                className="btn-cyber-primary p-2.5 rounded-lg flex-shrink-0"
+                                onClick={handleAddQA}
+                                disabled={!newQA.pregunta || !newQA.respuesta}
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Mensajes Predefinidos */}
+                <section className="glass-panel p-6 rounded-2xl lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <MessageSquare className="text-pink-400" size={24} />
+                        <h2 className="text-xl font-bold text-white">Respuestas Automáticas</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Bienvenida</label>
                             <textarea
-                                className="input"
-                                rows={3}
+                                className="input-cyber w-full min-h-[80px]"
                                 value={config.mensaje_bienvenida}
                                 onChange={(e) => updateField('mensaje_bienvenida', e.target.value)}
                             />
                         </div>
-
-                        <div className="form-row">
-                            <label className="label">Sin Stock</label>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Sin Stock</label>
                             <textarea
-                                className="input"
-                                rows={3}
+                                className="input-cyber w-full min-h-[80px]"
                                 value={config.mensaje_sin_stock}
                                 onChange={(e) => updateField('mensaje_sin_stock', e.target.value)}
                             />
                         </div>
-
-                        <div className="form-row">
-                            <label className="label">Pago Recibido</label>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Pago Recibido</label>
                             <textarea
-                                className="input"
-                                rows={3}
+                                className="input-cyber w-full min-h-[80px]"
                                 value={config.mensaje_pago_recibido}
                                 onChange={(e) => updateField('mensaje_pago_recibido', e.target.value)}
                             />
                         </div>
-
-                        <div className="form-row">
-                            <label className="label">Fuera de Horario</label>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Fuera de Horario</label>
                             <textarea
-                                className="input"
-                                rows={3}
+                                className="input-cyber w-full min-h-[80px]"
                                 value={config.respuesta_fuera_horario}
                                 onChange={(e) => updateField('respuesta_fuera_horario', e.target.value)}
                             />
@@ -365,28 +383,27 @@ export default function ConfiguracionIAPage() {
                     </div>
                 </section>
 
-                {/* Horario y Notificaciones (En grid de 2 columnas) */}
-                <section className="card config-section">
-                    <div className="config-section-header">
-                        <Clock style={{ width: '24px', height: '24px', color: 'var(--color-accent-emerald)' }} />
-                        <h2>Horario de Atención</h2>
+                {/* Horario y Notificaciones */}
+                <section className="glass-panel p-6 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <Clock className="text-orange-400" size={24} />
+                        <h2 className="text-xl font-bold text-white">Horario Activo</h2>
                     </div>
-
-                    <div className="form-grid-2">
-                        <div className="form-row">
-                            <label className="label">Inicio</label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Inicio</label>
                             <input
                                 type="time"
-                                className="input"
+                                className="input-cyber w-full"
                                 value={config.horario_atencion.inicio}
                                 onChange={(e) => updateField('horario_atencion', { ...config.horario_atencion, inicio: e.target.value })}
                             />
                         </div>
-                        <div className="form-row">
-                            <label className="label">Fin</label>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Fin</label>
                             <input
                                 type="time"
-                                className="input"
+                                className="input-cyber w-full"
                                 value={config.horario_atencion.fin}
                                 onChange={(e) => updateField('horario_atencion', { ...config.horario_atencion, fin: e.target.value })}
                             />
@@ -394,181 +411,35 @@ export default function ConfiguracionIAPage() {
                     </div>
                 </section>
 
-                <section className="card config-section">
-                    <div className="config-section-header">
-                        <Bell style={{ width: '24px', height: '24px', color: 'var(--color-accent-rose)' }} />
-                        <h2>Alertas</h2>
+                <section className="glass-panel p-6 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <Bell className="text-red-400" size={24} />
+                        <h2 className="text-xl font-bold text-white">Alertas Humanas</h2>
                     </div>
-
-                    <div className="form-row">
-                        <label className="label">Email Reportes</label>
-                        <input
-                            type="email"
-                            className="input"
-                            value={config.notificar_email}
-                            onChange={(e) => updateField('notificar_email', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="form-row">
-                        <label className="label">WhatsApp Alertas</label>
-                        <input
-                            type="tel"
-                            className="input"
-                            value={config.notificar_whatsapp}
-                            onChange={(e) => updateField('notificar_whatsapp', e.target.value)}
-                        />
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">Email Reportes</label>
+                            <input
+                                type="email"
+                                className="input-cyber w-full"
+                                value={config.notificar_email}
+                                onChange={(e) => updateField('notificar_email', e.target.value)}
+                                placeholder="admin@nexus.tech"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400">WhatsApp Alertas</label>
+                            <input
+                                type="tel"
+                                className="input-cyber w-full"
+                                value={config.notificar_whatsapp}
+                                onChange={(e) => updateField('notificar_whatsapp', e.target.value)}
+                                placeholder="+57 300..."
+                            />
+                        </div>
                     </div>
                 </section>
             </div>
-
-            <style jsx>{`
-                .config-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: var(--space-6);
-                }
-
-                .config-section {
-                    padding: var(--space-6);
-                    display: flex;
-                    flex-direction: column;
-                }
-                
-                .config-section.full-width {
-                    grid-column: 1 / -1;
-                }
-
-                .config-section-header {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-3);
-                    margin-bottom: var(--space-4);
-                    padding-bottom: var(--space-4);
-                    border-bottom: 1px solid var(--color-border);
-                }
-
-                .config-section-header h2 {
-                    font-size: var(--font-size-lg);
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                }
-
-                .section-description {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-muted);
-                    margin-bottom: var(--space-4);
-                }
-
-                .form-row {
-                    margin-bottom: var(--space-5);
-                }
-
-                .form-help {
-                    font-size: var(--font-size-xs);
-                    color: var(--color-text-muted);
-                    margin-top: var(--space-2);
-                }
-
-                .form-grid-2 {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: var(--space-5);
-                }
-
-                textarea.input {
-                    resize: vertical;
-                    min-height: 80px;
-                }
-
-                /* QA Styles */
-                .qa-container {
-                    display: flex;
-                    flex-direction: column;
-                    gap: var(--space-4);
-                }
-
-                .qa-list {
-                    background: var(--color-bg-tertiary);
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--color-border);
-                    overflow: hidden;
-                }
-
-                .qa-item {
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: space-between;
-                    padding: var(--space-3) var(--space-4);
-                    border-bottom: 1px solid var(--color-border);
-                    gap: var(--space-4);
-                }
-
-                .qa-item:last-child {
-                    border-bottom: none;
-                }
-
-                .qa-content {
-                    flex: 1;
-                }
-
-                .qa-question {
-                    font-weight: 600;
-                    color: var(--color-text-primary);
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                
-                .qa-question svg {
-                     color: var(--color-accent-violet);
-                }
-
-                .qa-answer {
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-secondary);
-                }
-                
-                .delete-qa {
-                    color: var(--color-text-muted);
-                }
-                .delete-qa:hover {
-                    color: var(--color-danger);
-                    background: rgba(239, 68, 68, 0.1);
-                }
-
-                .qa-form {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr auto;
-                    gap: var(--space-3);
-                    align-items: center;
-                    background: rgba(255,255,255,0.02);
-                    padding: var(--space-4);
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--color-border);
-                }
-
-                .qa-empty {
-                    padding: var(--space-4);
-                    text-align: center;
-                    color: var(--color-text-muted);
-                    font-style: italic;
-                }
-
-
-                @media (max-width: 1024px) {
-                    .config-grid {
-                        grid-template-columns: 1fr;
-                    }
-                    .config-section.full-width {
-                         grid-column: 1;
-                    }
-                    .qa-form {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

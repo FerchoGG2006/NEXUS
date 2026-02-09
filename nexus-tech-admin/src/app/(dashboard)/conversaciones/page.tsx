@@ -9,6 +9,8 @@ import { SalesSimulator } from '@/components/SalesSimulator'
 
 interface MensajeChat {
     rol: 'cliente' | 'ia' | 'sistema'
+    tipo?: 'texto' | 'imagen'
+    url?: string
     contenido: string
     timestamp: string
 }
@@ -37,7 +39,8 @@ const getDemoConversaciones = (): Conversacion[] => [
         estado: 'negociando',
         historial_chat: [
             { rol: 'cliente', contenido: 'Hola, vi el case para iPhone 15 Pro, ¿está disponible?', timestamp: new Date(Date.now() - 300000).toISOString() },
-            { rol: 'ia', contenido: '¡Hola María! 👋 Sí, tenemos el iPhone 15 Pro Case disponible. Es de silicona premium con protección militar. ¿Te gustaría más información?', timestamp: new Date(Date.now() - 290000).toISOString() },
+            { rol: 'cliente', tipo: 'imagen', url: 'https://images.unsplash.com/photo-1603313011101-320f721612d9?w=300&q=80', contenido: 'Me refiero a este modelo en específico.', timestamp: new Date(Date.now() - 295000).toISOString() },
+            { rol: 'ia', contenido: '¡Hola María! 👋 Sí, tenemos ese modelo exacto en stock. Es el Titan Grey. ¿Te gustaría proceder con la compra?', timestamp: new Date(Date.now() - 290000).toISOString() },
             { rol: 'cliente', contenido: 'Sí, ¿cuánto cuesta y hacen envíos a Medellín?', timestamp: new Date(Date.now() - 200000).toISOString() },
             { rol: 'ia', contenido: 'El precio es $29.99 USD. Sí, hacemos envíos a todo Colombia. El envío a Medellín es gratis por compras mayores a $25. ¿Quieres que te envíe el link de pago?', timestamp: new Date(Date.now() - 190000).toISOString() },
         ],
@@ -255,6 +258,11 @@ export default function ConversacionesPage() {
                                                 </div>
                                             )}
 
+                                            {msg.tipo === 'imagen' && msg.url && (
+                                                <div className="mb-2 rounded-lg overflow-hidden border border-white/10">
+                                                    <img src={msg.url} alt="Imagen adjunta" className="max-w-full h-auto max-h-60 object-cover" />
+                                                </div>
+                                            )}
                                             <p>{msg.contenido}</p>
                                         </div>
                                         <span className="text-[10px] text-gray-500 mt-2 px-2 font-mono">

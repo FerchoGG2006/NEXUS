@@ -13,7 +13,7 @@ import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import cors from 'cors';
-// import axios from 'axios';
+import axios from 'axios';
 
 // Inicializar Firebase Admin
 admin.initializeApp();
@@ -24,6 +24,8 @@ const corsHandler = cors({ origin: true });
 // interfaces
 interface ChatMessage {
     rol: 'cliente' | 'ia';
+    tipo?: 'texto' | 'imagen';
+    url?: string;
     contenido: string;
     timestamp: string;
 }
@@ -60,15 +62,38 @@ async function getGeminiResponse(prompt: string, history: ChatMessage[], apiKey:
     });
 
     // Convertir historial al formato de Gemini
-    const contents = history.map(m => ({
-        role: m.rol === 'cliente' ? 'user' : 'model',
-        parts: [{ text: m.contenido }]
+    const contents = await Promise.all(history.map(async m => {
+        const parts: any[] = [{ text: m.contenido }];
+        
+        if (m.tipo === 'imagen' && m.url) {
+            try {
+                // Descargar imagen y convertir a base64
+                const response = await axios.get(m.url, { responseType: 'arraybuffer' });
+                const base64Data = Buffer.from(response.data, 'binary').toString('base64');
+                const mimeType = response.headers['content-type'];
+
+                parts.unshift({
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType
+                    }
+                });
+            } catch (error) {
+                console.error('Error descargando imagen para Gemini:', error);
+                parts.push({ text: "[Error procesando imagen adjunta]" });
+            }
+        }
+
+        return {
+            role: m.rol === 'cliente' ? 'user' : 'model',
+            parts: parts
+        };
     }));
 
     const result = await model.generateContent({
         contents: contents,
         generationConfig: {
-            maxOutputTokens: 200,
+            maxOutputTokens: 300,
             temperature: 0.7,
         },
     });
@@ -244,6 +269,8 @@ export const procesarMensajeEntrante = functions.firestore
             historialChat.push({
                 rol: 'cliente',
                 contenido: textoUsuario,
+                tipo: payload.tipo === 'imagen' ? 'imagen' : 'texto',
+                url: payload.url,
                 timestamp: new Date().toISOString()
             });
 
@@ -352,10 +379,12 @@ export const procesarMensajeManual = functions.https.onRequest((req, res) => {
         // Envolver lógica de simulador web
         // Simplemente guarda en 'mensajes_entrantes' y deja que el trigger haga el trabajo
         try {
-            const { mensaje, cliente_id, plataforma } = req.body;
+            const { mensaje, cliente_id, plataforma, image_url } = req.body;
             await db.collection('mensajes_entrantes').add({
                 plataforma: plataforma || 'web',
                 texto: mensaje,
+                tipo: image_url ? 'imagen' : 'texto',
+                url: image_url,
                 sender_id: cliente_id || 'web-user',
                 sender_name: 'Usuario Web',
                 timestamp: new Date().toISOString(),

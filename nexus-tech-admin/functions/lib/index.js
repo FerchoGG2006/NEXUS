@@ -51,7 +51,7 @@ const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
 const generative_ai_1 = require("@google/generative-ai");
 const cors_1 = __importDefault(require("cors"));
-// import axios from 'axios';
+const axios_1 = __importDefault(require("axios"));
 // Inicializar Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
@@ -73,14 +73,35 @@ async function getGeminiResponse(prompt, history, apiKey) {
         systemInstruction: prompt,
     });
     // Convertir historial al formato de Gemini
-    const contents = history.map(m => ({
-        role: m.rol === 'cliente' ? 'user' : 'model',
-        parts: [{ text: m.contenido }]
+    const contents = await Promise.all(history.map(async (m) => {
+        const parts = [{ text: m.contenido }];
+        if (m.tipo === 'imagen' && m.url) {
+            try {
+                // Descargar imagen y convertir a base64
+                const response = await axios_1.default.get(m.url, { responseType: 'arraybuffer' });
+                const base64Data = Buffer.from(response.data, 'binary').toString('base64');
+                const mimeType = response.headers['content-type'];
+                parts.unshift({
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType
+                    }
+                });
+            }
+            catch (error) {
+                console.error('Error descargando imagen para Gemini:', error);
+                parts.push({ text: "[Error procesando imagen adjunta]" });
+            }
+        }
+        return {
+            role: m.rol === 'cliente' ? 'user' : 'model',
+            parts: parts
+        };
     }));
     const result = await model.generateContent({
         contents: contents,
         generationConfig: {
-            maxOutputTokens: 200,
+            maxOutputTokens: 300,
             temperature: 0.7,
         },
     });
@@ -241,6 +262,8 @@ exports.procesarMensajeEntrante = functions.firestore
         historialChat.push({
             rol: 'cliente',
             contenido: textoUsuario,
+            tipo: payload.tipo === 'imagen' ? 'imagen' : 'texto',
+            url: payload.url,
             timestamp: new Date().toISOString()
         });
         // 3. Consultar a GPT-4o
@@ -341,10 +364,12 @@ exports.procesarMensajeManual = functions.https.onRequest((req, res) => {
         // Envolver lógica de simulador web
         // Simplemente guarda en 'mensajes_entrantes' y deja que el trigger haga el trabajo
         try {
-            const { mensaje, cliente_id, plataforma } = req.body;
+            const { mensaje, cliente_id, plataforma, image_url } = req.body;
             await db.collection('mensajes_entrantes').add({
                 plataforma: plataforma || 'web',
                 texto: mensaje,
+                tipo: image_url ? 'imagen' : 'texto',
+                url: image_url,
                 sender_id: cliente_id || 'web-user',
                 sender_name: 'Usuario Web',
                 timestamp: new Date().toISOString(),

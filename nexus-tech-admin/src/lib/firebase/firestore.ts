@@ -34,7 +34,9 @@ export const COLLECTIONS = {
     WEBHOOKS_LOG: 'webhooks_log',
     AFILIADOS: 'afiliados',
     VENTAS: 'ventas',
-    CLIENTES_B2B: 'clientes_b2b'
+    CLIENTES_B2B: 'clientes_b2b',
+    CLIENTES_LEADS: 'clientes_leads',
+    CAMPANAS: 'campanas'
 }
 
 // ============================================
@@ -412,6 +414,18 @@ export async function getAfiliados() {
     return getAll(COLLECTIONS.AFILIADOS, [orderBy('nombre')])
 }
 
+export async function getAfiliadoByCodigo(codigo: string) {
+    const results = await getAll(COLLECTIONS.AFILIADOS, [where('codigo_referido', '==', codigo), limit(1)])
+    return results.length > 0 ? results[0] : null
+}
+
+export async function getVentasByAfiliado(afiliadoId: string) {
+    return getAll(COLLECTIONS.VENTAS, [
+        where('afiliado_id', '==', afiliadoId),
+        orderBy('fecha', 'desc')
+    ])
+}
+
 export async function getClientesB2B() {
     return getAll(COLLECTIONS.CLIENTES_B2B, [orderBy('empresa')])
 }
@@ -421,4 +435,29 @@ export function generarCodigoAfiliado(nombre: string): string {
     const prefijo = nombre.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'NEX')
     const random = Math.random().toString(36).substring(2, 6).toUpperCase()
     return `${prefijo}-${random}`
+}
+
+// ============================================
+// MARKETING AUTOMATION
+// ============================================
+
+export async function getMarketingLeads() {
+    return getAll(COLLECTIONS.CLIENTES_LEADS, [orderBy('created_at', 'desc')])
+}
+
+export async function getCampanasActivas() {
+    return getAll(COLLECTIONS.CAMPANAS, [where('activa', '==', true)])
+}
+
+/**
+ * Identifica clientes que no han comprado en X meses
+ */
+export async function getClientesInactivos(meses: number = 3) {
+    const fechaLimite = new Date()
+    fechaLimite.setMonth(fechaLimite.getMonth() - meses)
+
+    return getAll(COLLECTIONS.CLIENTES_LEADS, [
+        where('ultima_compra', '<=', fechaLimite.toISOString()),
+        orderBy('ultima_compra', 'desc')
+    ])
 }

@@ -39,6 +39,7 @@ const navItems = [
     { href: '/cotizaciones', label: 'Cotizaciones', icon: FileText },
     { type: 'divider', label: 'ANÁLISIS' },
     { href: '/reportes', label: 'Reportes', icon: BarChart3 },
+    { href: '/marketing', label: 'Marketing', icon: Sparkles },
     { type: 'divider', label: 'CONFIGURACIÓN' },
     { href: '/configuracion-ia', label: 'Agente IA', icon: Bot },
     { href: '/configuracion', label: 'General', icon: Settings },

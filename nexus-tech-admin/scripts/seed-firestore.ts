@@ -3,6 +3,7 @@
  * Ejecutar: npx ts-node scripts/seed-firestore.ts
  */
 
+import 'dotenv/config';
 import admin from 'firebase-admin';
 
 // Inicializar con credenciales de servicio
@@ -38,7 +39,8 @@ REGLAS:
         respuesta_fuera_horario: 'Gracias por escribir. Horario: 9am-9pm. Te respondo mañana.',
         notificar_email: '',
         notificar_whatsapp: '',
-        openai_api_key: '', // IMPORTANTE: Agregar tu API key aquí
+        openai_api_key: process.env.OPENAI_API_KEY || '', // API key configurada desde .env
+        gemini_api_key: '', // Placeholder para Gemini
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     });
@@ -237,6 +239,50 @@ REGLAS:
         created_at: new Date().toISOString()
     });
     console.log('✅ Pedido de despacho creado\n');
+
+    // 6. Marketing Leads de ejemplo
+    console.log('🎯 Creando leads de marketing de ejemplo...');
+    const leads = [
+        {
+            nombre: 'Roberto Soto',
+            telefono: '+57 320 777 8899',
+            modelo_celular_actual: 'iPhone 12',
+            origen: 'Feria Presencial',
+            estado_conversion: 'frio',
+            ultima_compra: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(), // Hace 4 meses
+            interacciones_count: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        },
+        {
+            nombre: 'Ana García',
+            telefono: '+57 311 444 5566',
+            modelo_celular_actual: 'iPhone 15 Pro',
+            origen: 'Instagram',
+            estado_conversion: 'comprador',
+            ultima_compra: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString(), // Hace ~3 meses
+            interacciones_count: 3,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        },
+        {
+            nombre: 'Juan Pérez',
+            telefono: '+57 300 111 2233',
+            modelo_celular_actual: 'iPhone 13',
+            origen: 'TikTok',
+            estado_conversion: 'caliente',
+            ultima_compra: new Date().toISOString(), // Hoy
+            interacciones_count: 5,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }
+    ];
+
+    for (const lead of leads) {
+        await db.collection('clientes_leads').add(lead);
+        console.log(`  ✅ ${lead.nombre}`);
+    }
+    console.log('\n');
 
     console.log('🎉 ¡Seed completado exitosamente!\n');
     console.log('Datos creados:');

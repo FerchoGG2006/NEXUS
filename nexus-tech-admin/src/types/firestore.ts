@@ -110,6 +110,7 @@ interface ConfiguracionIA {
     notificar_email: string
     notificar_whatsapp: string
     openai_api_key: string          // Encriptada
+    gemini_api_key?: string          // Encriptada
     knowledge_base: {               // FAQs y políticas
         pregunta: string
         respuesta: string
@@ -130,6 +131,39 @@ interface WebhookLog {
     created_at: string
 }
 
+/*
+COLECCIÓN: clientes_leads
+Centralización de leads para marketing proactivo
+*/
+interface ClienteLead {
+    id: string
+    nombre: string
+    telefono: string
+    instagram_user?: string
+    facebook_id?: string
+    modelo_celular_actual?: string
+    origen: string                  // Ej: 'TikTok', 'Instagram', 'Feria'
+    estado_conversion: 'frio' | 'tibio' | 'caliente' | 'comprador'
+    ultima_compra?: string
+    interacciones_count: number
+    created_at: string
+    updated_at: string
+}
+
+/*
+COLECCIÓN: campanas_automatizadas
+Configuración de disparadores de ventas
+*/
+interface Campana {
+    id: string
+    nombre: string
+    descripcion: string
+    segmentacion_dias_inactividad: number
+    mensaje_plantilla: string
+    activa: boolean
+    created_at: string
+}
+
 // Export types
 export type {
     Producto,
@@ -138,5 +172,7 @@ export type {
     DatosEnvio,
     PedidoDespacho,
     ConfiguracionIA,
-    WebhookLog
+    WebhookLog,
+    ClienteLead,
+    Campana
 }

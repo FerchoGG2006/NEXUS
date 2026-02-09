@@ -24,6 +24,7 @@ interface ConfiguracionIA {
     notificar_email: string
     notificar_whatsapp: string
     openai_api_key: string
+    gemini_api_key?: string
     knowledge_base: QAItem[]
 }
 
@@ -50,6 +51,7 @@ REGLAS:
     notificar_email: '',
     notificar_whatsapp: '',
     openai_api_key: '',
+    gemini_api_key: '',
     knowledge_base: [
         { pregunta: '¿Tienen tienda física?', respuesta: 'Somos una tienda 100% online, hacemos envíos a todo el país.' },
         { pregunta: '¿Cuánto tarda el envío?', respuesta: 'Los envíos toman de 2 a 4 días hábiles en ciudades principales.' },
@@ -162,8 +164,8 @@ export default function ConfiguracionIAPage() {
             {/* Mensaje */}
             {mensaje && (
                 <div className={`p-4 rounded-xl border flex items-center gap-3 ${mensaje.tipo === 'success'
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-red-500/10 border-red-500/30 text-red-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-red-500/10 border-red-500/30 text-red-400'
                     }`}>
                     {mensaje.tipo === 'success' ? <Sparkles size={20} /> : <AlertCircle size={20} />}
                     <div className="font-medium">{mensaje.texto}</div>
@@ -199,8 +201,8 @@ export default function ConfiguracionIAPage() {
                                         key={tono}
                                         onClick={() => updateField('tono_vendedor', tono)}
                                         className={`px-3 py-2 rounded-lg border text-sm capitalize transition-all ${config.tono_vendedor === tono
-                                                ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                                                : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/30'
+                                            ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10 text-[var(--neon-cyan)] shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                                            : 'border-white/10 bg-black/20 text-gray-400 hover:border-white/30'
                                             }`}
                                     >
                                         {tono}
@@ -211,7 +213,7 @@ export default function ConfiguracionIAPage() {
                     </div>
                 </section>
 
-                {/* API Key */}
+                {/* API Keys */}
                 <section className="glass-panel p-6 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--neon-green)]/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
@@ -219,26 +221,49 @@ export default function ConfiguracionIAPage() {
                         <h2 className="text-xl font-bold text-white">Credenciales API</h2>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-xs text-gray-400 uppercase tracking-wider">OpenAI API Key (GPT-4o)</label>
-                        <div className="relative">
-                            <input
-                                type={showApiKey ? 'text' : 'password'}
-                                className="input-cyber w-full pr-24 font-mono text-[var(--neon-green)]"
-                                value={config.openai_api_key}
-                                onChange={(e) => updateField('openai_api_key', e.target.value)}
-                                placeholder="sk-..."
-                            />
-                            <button
-                                type="button"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-gray-300 transition-colors"
-                                onClick={() => setShowApiKey(!showApiKey)}
-                            >
-                                {showApiKey ? 'OCULTAR' : 'MOSTRAR'}
-                            </button>
+                    <div className="space-y-6">
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">OpenAI API Key (GPT-4o)</label>
+                            <div className="relative">
+                                <input
+                                    type={showApiKey ? 'text' : 'password'}
+                                    className="input-cyber w-full pr-24 font-mono text-[var(--neon-green)]"
+                                    value={config.openai_api_key}
+                                    onChange={(e) => updateField('openai_api_key', e.target.value)}
+                                    placeholder="sk-..."
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-gray-300 transition-colors"
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                >
+                                    {showApiKey ? 'OCULTAR' : 'MOSTRAR'}
+                                </button>
+                            </div>
                         </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-400 uppercase tracking-wider">Gemini API Key (Flash 1.5)</label>
+                            <div className="relative">
+                                <input
+                                    type={showApiKey ? 'text' : 'password'}
+                                    className="input-cyber w-full pr-24 font-mono text-[var(--neon-cyan)]"
+                                    value={config.gemini_api_key}
+                                    onChange={(e) => updateField('gemini_api_key', e.target.value)}
+                                    placeholder="AIza..."
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-xs text-gray-300 transition-colors"
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                >
+                                    {showApiKey ? 'OCULTAR' : 'MOSTRAR'}
+                                </button>
+                            </div>
+                        </div>
+
                         <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
-                            <ShieldCheck size={12} /> Tus llaves están encriptadas en local.
+                            <ShieldCheck size={12} /> El sistema priorizará Gemini si la llave está configurada.
                         </p>
                     </div>
                 </section>

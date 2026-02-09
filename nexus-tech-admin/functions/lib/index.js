@@ -49,6 +49,7 @@ exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMens
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
+const generative_ai_1 = require("@google/generative-ai");
 const cors_1 = __importDefault(require("cors"));
 // import axios from 'axios';
 // Inicializar Firebase Admin
@@ -64,6 +65,26 @@ async function getOpenAIClient() {
     if (!(config === null || config === void 0 ? void 0 : config.openai_api_key))
         throw new Error('OpenAI API Key no configurada');
     return new openai_1.default({ apiKey: config.openai_api_key });
+}
+async function getGeminiResponse(prompt, history, apiKey) {
+    const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Convertir historial al formato de Gemini
+    const contents = [
+        { role: 'user', parts: [{ text: prompt }] },
+        ...history.map(m => ({
+            role: m.rol === 'cliente' ? 'user' : 'model',
+            parts: [{ text: m.contenido }]
+        }))
+    ];
+    const result = await model.generateContent({
+        contents: contents,
+        generationConfig: {
+            maxOutputTokens: 200,
+            temperature: 0.7,
+        },
+    });
+    return result.response.text();
 }
 // ============================================
 // 1. WEBHOOKS PÚBLICOS (ENTRADA)
@@ -225,26 +246,41 @@ exports.procesarMensajeEntrante = functions.firestore
         // 3. Consultar a GPT-4o
         const configDoc = await db.collection('configuracion_ia').doc('default').get();
         const config = configDoc.data() || {};
-        // Construir Prompt Simplificado
-        let systemPrompt = `Eres Nexus Assistant, vendedor experto de ${config.nombre_tienda || 'la tienda'}. 
-            Responde corto y persuasivo. Tu objetivo es cerrar la venta.`;
+        // Construir Prompt Avanzado
+        let systemPrompt = config.prompt_sistema || `Eres el vendedor virtual de ${config.nombre_tienda || 'Nexus Tech'}. 
+            Tu objetivo es ser profesional, persuasivo y cerrar la venta.
+            Responde de forma concisa (2-3 oraciones).
+            Si el cliente muestra interés, solicita sus datos de envío y envía el link de pago.`;
         if (config.knowledge_base) {
             const faqs = config.knowledge_base.map((qa) => `P: ${qa.pregunta} R: ${qa.respuesta}`).join('\n');
-            systemPrompt += `\nUsa esta info:\n${faqs}`;
+            systemPrompt += `\n\nInformación de soporte:\n${faqs}`;
         }
-        const openai = await getOpenAIClient();
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...historialChat.map(m => ({
-                    role: (m.rol === 'cliente' ? 'user' : 'assistant'),
-                    content: m.contenido
-                }))
-            ],
-            max_tokens: 150
-        });
-        const respuestaIA = completion.choices[0].message.content || "Lo siento, ¿puedes repetir?";
+        let respuestaIA = "";
+        // Decidir qué IA usar basado en la configuración
+        if (config.gemini_api_key) {
+            console.log('Utilizando Gemini 1.5 Flash...');
+            respuestaIA = await getGeminiResponse(systemPrompt, historialChat, config.gemini_api_key);
+        }
+        else if (config.openai_api_key) {
+            console.log('Utilizando OpenAI GPT-4o...');
+            const openai = await getOpenAIClient();
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...historialChat.map(m => ({
+                        role: (m.rol === 'cliente' ? 'user' : 'assistant'),
+                        content: m.contenido
+                    }))
+                ],
+                max_tokens: 150,
+                temperature: 0.7
+            });
+            respuestaIA = completion.choices[0].message.content || "Lo siento, ¿puedes repetir?";
+        }
+        else {
+            respuestaIA = "Configuración de IA no detectada.";
+        }
         // 4. Guardar respuesta en Conversación
         historialChat.push({
             rol: 'ia',
@@ -252,8 +288,12 @@ exports.procesarMensajeEntrante = functions.firestore
             timestamp: new Date().toISOString()
         });
         let nuevoEstado = conversacionData.estado;
-        // Detección simple de intención (se puede mejorar mucho)
-        if (respuestaIA.includes('link de pago') || textoUsuario.toLowerCase().includes('comprar')) {
+        // Detección mejorada de intención
+        const lowerRes = respuestaIA.toLowerCase();
+        if (lowerRes.includes('link de pago') || lowerRes.includes('puedes pagar')) {
+            nuevoEstado = 'esperando_pago';
+        }
+        else if (lowerRes.includes('datos de envío') || lowerRes.includes('dirección')) {
             nuevoEstado = 'negociando';
         }
         await db.collection('conversaciones').doc(conversacionId).update({
@@ -263,9 +303,31 @@ exports.procesarMensajeEntrante = functions.firestore
             ultimo_mensaje: respuestaIA
         });
         // 5. ENVIAR RESPUESTA A LA PLATAFORMA (Output)
-        // Aquí iría la llamada a axios.post('https://graph.facebook.com/v18.0/messages'...)
-        // Lo dejamos comentado como TODO para integración final
-        console.log(`>>> ENVIANDO RESPUESTA A ${payload.plataforma}: ${respuestaIA}`);
+        // Para integración real, descomenta y configura el Token de Acceso
+        /*
+        try {
+            const platform = payload.plataforma;
+            const recipientId = payload.sender_id;
+            
+            if (platform === 'whatsapp') {
+                // Llamada a WhatsApp API
+                // await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_ID}/messages`, {
+                //     messaging_product: "whatsapp",
+                //     to: recipientId,
+                //     text: { body: respuestaIA }
+                // }, { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` } });
+            } else if (platform === 'facebook' || platform === 'instagram') {
+                // Llamada a Messenger/IG API
+                // await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.META_ACCESS_TOKEN}`, {
+                //     recipient: { id: recipientId },
+                //     message: { text: respuestaIA }
+                // });
+            }
+        } catch (err) {
+            console.error('Error enviando mensaje a plataforma:', err);
+        }
+        */
+        console.log(`>>> [SIMULACIÓN] Respuesta enviada a ${payload.plataforma} (${payload.sender_id}): ${respuestaIA}`);
         // Marcar mensaje entrante como procesado
         await snap.ref.update({ procesado: true, respuesta_generada: respuestaIA });
     }

@@ -68,15 +68,15 @@ async function getOpenAIClient() {
 }
 async function getGeminiResponse(prompt, history, apiKey) {
     const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: prompt,
+    });
     // Convertir historial al formato de Gemini
-    const contents = [
-        { role: 'user', parts: [{ text: prompt }] },
-        ...history.map(m => ({
-            role: m.rol === 'cliente' ? 'user' : 'model',
-            parts: [{ text: m.contenido }]
-        }))
-    ];
+    const contents = history.map(m => ({
+        role: m.rol === 'cliente' ? 'user' : 'model',
+        parts: [{ text: m.contenido }]
+    }));
     const result = await model.generateContent({
         contents: contents,
         generationConfig: {
@@ -353,7 +353,7 @@ exports.procesarMensajeManual = functions.https.onRequest((req, res) => {
             res.json({ success: true, message: 'Mensaje encolado para IA' });
         }
         catch (e) {
-            res.status(500).json({ error: e.message });
+            res.status(500).json({ error: e instanceof Error ? e.message : 'Error desconocido' });
         }
     });
 });

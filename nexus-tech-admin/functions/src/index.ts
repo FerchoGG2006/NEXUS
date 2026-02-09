@@ -21,6 +21,26 @@ admin.initializeApp();
 const db = admin.firestore();
 const corsHandler = cors({ origin: true });
 
+// interfaces
+interface ChatMessage {
+    rol: 'cliente' | 'ia';
+    contenido: string;
+    timestamp: string;
+}
+
+interface Conversacion {
+    cliente_id: string;
+    cliente_nombre: string;
+    plataforma: string;
+    estado: string;
+    created_at: string;
+    updated_at: string;
+    historial_chat: ChatMessage[];
+    producto_nombre?: string;
+    pago_confirmado?: boolean;
+    ultimo_mensaje?: string;
+}
+
 // ============================================
 // HELPERS Y CONFIGURACIÓN
 // ============================================
@@ -32,18 +52,18 @@ async function getOpenAIClient(): Promise<OpenAI> {
     return new OpenAI({ apiKey: config.openai_api_key });
 }
 
-async function getGeminiResponse(prompt: string, history: any[], apiKey: string): Promise<string> {
+async function getGeminiResponse(prompt: string, history: ChatMessage[], apiKey: string): Promise<string> {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: prompt,
+    });
 
     // Convertir historial al formato de Gemini
-    const contents = [
-        { role: 'user', parts: [{ text: prompt }] },
-        ...history.map(m => ({
-            role: m.rol === 'cliente' ? 'user' : 'model',
-            parts: [{ text: m.contenido }]
-        }))
-    ];
+    const contents = history.map(m => ({
+        role: m.rol === 'cliente' ? 'user' : 'model',
+        parts: [{ text: m.contenido }]
+    }));
 
     const result = await model.generateContent({
         contents: contents,
@@ -194,8 +214,8 @@ export const procesarMensajeEntrante = functions.firestore
                 .limit(1)
                 .get();
 
-            let historialChat: any[] = [];
-            let conversacionData: any = {};
+            let historialChat: ChatMessage[] = [];
+            let conversacionData: Partial<Conversacion> = {};
 
             if (!convQuery.empty) {
                 const convDoc = convQuery.docs[0];
@@ -343,7 +363,7 @@ export const procesarMensajeManual = functions.https.onRequest((req, res) => {
             });
             res.json({ success: true, message: 'Mensaje encolado para IA' });
         } catch (e: any) {
-            res.status(500).json({ error: e.message });
+            res.status(500).json({ error: e instanceof Error ? e.message : 'Error desconocido' });
         }
     });
 });

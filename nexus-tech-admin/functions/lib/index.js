@@ -107,19 +107,50 @@ async function getGeminiResponse(prompt, history, apiKey) {
     });
     return result.response.text();
 }
+async function getProductDetails(searchKey) {
+    if (!searchKey)
+        return "";
+    // 1. Buscar por ID directo
+    let doc = await db.collection('productos').doc(searchKey).get();
+    // 2. Si no existe, buscar por SKU
+    if (!doc.exists) {
+        const query = await db.collection('productos').where('sku', '==', searchKey).limit(1).get();
+        if (!query.empty) {
+            doc = query.docs[0];
+        }
+    }
+    if (!doc.exists)
+        return "";
+    const p = doc.data();
+    if (!p.activo)
+        return `[SISTEMA: El producto '${p.nombre}' está DESCATALOGADO o INACTIVO. Infórmalo amablemente.]`;
+    return `
+    [CONTEXTO DEL PRODUCTO SELECCIONADO]
+    - Nombre: ${p.nombre}
+    - SKU: ${p.sku}
+    - Precio: $${p.precio_retail}
+    - Stock Actual: ${p.stock} unidades
+    - Descripción Técnica: ${p.descripcion_ia || 'Sin descripción específica.'}
+    - LINK DE PAGO: ${p.link_pago_base || 'No disponible (Solicitar generación manual)'}
+    
+    [INSTRUCCIONES DE VENTA]
+    1. Si el stock es 0, di que no hay disponible.
+    2. Usa la información de precio y características para responder dudas.
+    3. Si preguntan precio, dalo exactamente como figura aquí.
+    4. CIERRE DE VENTA: Si el cliente confirma interés, envía EXCLUSIVAMENTE este link de pago: ${p.link_pago_base || '(Indica que generarás uno)'}
+    `.trim();
+}
 // ============================================
 // 1. WEBHOOKS PÚBLICOS (ENTRADA)
 // ============================================
 // Webhook Unificado para Meta (WhatsApp, Instagram, Messenger)
 exports.webhookMeta = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
-        // A) Verificación del Token (Handshake inicial)
+        // A) Verificación del Token
         if (req.method === 'GET') {
             const mode = req.query['hub.mode'];
             const token = req.query['hub.verify_token'];
             const challenge = req.query['hub.challenge'];
-            // Usamos un token fijo 'nexus_secure_token' o variable de entorno
             if (mode === 'subscribe' && token === (process.env.META_VERIFY_TOKEN || 'nexus_secure_token')) {
                 res.status(200).send(challenge);
             }
@@ -128,48 +159,15 @@ exports.webhookMeta = functions.https.onRequest((req, res) => {
             }
             return;
         }
-        // B) Recepción de Mensajes (POST)
+        // B) Recepción de Mensajes
         try {
             const body = req.body;
-            // Log para debug
             console.log('Meta Webhook Payload:', JSON.stringify(body, null, 2));
-            // Extraer mensaje (Estructura genérica de Meta)
-            if (body.object) {
-                let entry = (_a = body.entry) === null || _a === void 0 ? void 0 : _a[0];
-                let changes = ((_c = (_b = entry === null || entry === void 0 ? void 0 : entry.changes) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.value) || ((_d = entry === null || entry === void 0 ? void 0 : entry.messaging) === null || _d === void 0 ? void 0 : _d[0]); // WhatsApp vs Messenger
-                // WhatsApp Business API Specifics
-                if (body.object === 'whatsapp_business_account') {
-                    const message = (_e = changes === null || changes === void 0 ? void 0 : changes.messages) === null || _e === void 0 ? void 0 : _e[0];
-                    const contact = (_f = changes === null || changes === void 0 ? void 0 : changes.contacts) === null || _f === void 0 ? void 0 : _f[0];
-                    if (message && message.type === 'text') {
-                        // Guardar en cola de procesamiento
-                        await db.collection('mensajes_entrantes').add({
-                            plataforma: 'whatsapp',
-                            mensaje_id: message.id,
-                            sender_id: message.from,
-                            sender_name: ((_g = contact === null || contact === void 0 ? void 0 : contact.profile) === null || _g === void 0 ? void 0 : _g.name) || 'Cliente WhatsApp',
-                            texto: message.text.body,
-                            timestamp: new Date().toISOString(),
-                            procesado: false
-                        });
-                    }
-                }
-                // Facebook / Instagram
-                else if (body.object === 'page' || body.object === 'instagram') {
-                    // Lógica similar para Messenger/IG (simplificada para demo)
-                    const event = (_h = entry === null || entry === void 0 ? void 0 : entry.messaging) === null || _h === void 0 ? void 0 : _h[0];
-                    if ((_j = event === null || event === void 0 ? void 0 : event.message) === null || _j === void 0 ? void 0 : _j.text) {
-                        await db.collection('mensajes_entrantes').add({
-                            plataforma: body.object === 'instagram' ? 'instagram' : 'facebook',
-                            mensaje_id: event.message.mid,
-                            sender_id: event.sender.id,
-                            sender_name: 'Usuario Meta', // FB no manda nombre directo en webhook
-                            texto: event.message.text,
-                            timestamp: new Date().toISOString(),
-                            procesado: false
-                        });
-                    }
-                }
+            if (body.object === 'whatsapp_business_account') {
+                await handleWhatsApp(body);
+            }
+            else if (body.object === 'page' || body.object === 'instagram') {
+                await handleFacebokInstagram(body);
             }
             res.status(200).send('EVENT_RECEIVED');
         }
@@ -179,6 +177,90 @@ exports.webhookMeta = functions.https.onRequest((req, res) => {
         }
     });
 });
+async function handleWhatsApp(body) {
+    var _a, _b, _c, _d, _e;
+    const entry = (_a = body.entry) === null || _a === void 0 ? void 0 : _a[0];
+    const changes = (_b = entry === null || entry === void 0 ? void 0 : entry.changes) === null || _b === void 0 ? void 0 : _b[0];
+    const value = changes === null || changes === void 0 ? void 0 : changes.value;
+    if (!value)
+        return;
+    const message = (_c = value.messages) === null || _c === void 0 ? void 0 : _c[0];
+    const contact = (_d = value.contacts) === null || _d === void 0 ? void 0 : _d[0];
+    if (message) {
+        let texto = '';
+        let tipo = 'texto';
+        let url = undefined;
+        if (message.type === 'text') {
+            texto = message.text.body;
+        }
+        else if (message.type === 'image') {
+            tipo = 'imagen';
+            texto = message.caption || '[Imagen enviada]';
+            // Nota: En producción, esto requiere ID y Token para obtener la URL real
+            // Por ahora simulamos o guardamos el ID
+            url = `https://graph.facebook.com/v18.0/${message.image.id}`;
+        }
+        // Detección de Contexto (Marketplace/Ads)
+        let contexto = '';
+        if (message.context && message.context.id) {
+            // Si viene de un Ad o Reply
+            contexto = `Reply to message: ${message.context.id}`;
+        }
+        await db.collection('mensajes_entrantes').add({
+            plataforma: 'whatsapp',
+            mensaje_id: message.id,
+            sender_id: message.from,
+            sender_name: ((_e = contact === null || contact === void 0 ? void 0 : contact.profile) === null || _e === void 0 ? void 0 : _e.name) || 'Cliente WhatsApp',
+            texto: texto,
+            tipo: tipo,
+            url: url,
+            contexto_externo: contexto,
+            timestamp: new Date().toISOString(),
+            procesado: false
+        });
+    }
+}
+async function handleFacebokInstagram(body) {
+    var _a, _b;
+    const entry = (_a = body.entry) === null || _a === void 0 ? void 0 : _a[0];
+    const messaging = (_b = entry === null || entry === void 0 ? void 0 : entry.messaging) === null || _b === void 0 ? void 0 : _b[0];
+    if (messaging) {
+        const senderId = messaging.sender.id;
+        const message = messaging.message;
+        let texto = message.text || '';
+        let tipo = 'texto';
+        let url = undefined;
+        let contexto = '';
+        // Detección de adjuntos (Imágenes)
+        if (message.attachments && message.attachments.length > 0) {
+            const attachment = message.attachments[0];
+            if (attachment.type === 'image') {
+                tipo = 'imagen';
+                url = attachment.payload.url;
+                texto = texto || '[Imagen adjunta]';
+            }
+        }
+        // Detección de Marketplace Referral (Postback)
+        if (messaging.referral) {
+            const ref = messaging.referral;
+            contexto = `Marketplace Ad Source: ${ref.source}, Ref: ${ref.ref}`;
+            if (!texto)
+                texto = "Hola, vi esto en Marketplace";
+        }
+        await db.collection('mensajes_entrantes').add({
+            plataforma: body.object === 'instagram' ? 'instagram' : 'facebook',
+            mensaje_id: message.mid,
+            sender_id: senderId,
+            sender_name: 'Usuario Meta', // FB no envía nombre aquí
+            texto: texto,
+            tipo: tipo,
+            url: url,
+            contexto_externo: contexto,
+            timestamp: new Date().toISOString(),
+            procesado: false
+        });
+    }
+}
 // Webhook para MercadoLibre
 exports.webhookMercadoLibre = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
@@ -251,9 +333,21 @@ exports.procesarMensajeEntrante = functions.firestore
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 historial_chat: [],
-                producto_nombre: 'Consulta General', // Idealmente inferir del contexto
+                producto_nombre: 'Consulta General',
+                contexto_inicial: payload.contexto_externo || '',
                 pago_confirmado: false
             };
+            // Intentar inferir producto del contexto (Ref: XXXXX)
+            if (payload.contexto_externo && payload.contexto_externo.includes('Ref:')) {
+                const match = payload.contexto_externo.match(/Ref:\s*(\w+)/);
+                if (match && match[1]) {
+                    nuevaConv.producto_interes = match[1];
+                    nuevaConv.producto_nombre = 'Producto #' + match[1];
+                }
+                else {
+                    nuevaConv.producto_nombre = 'Artículo de Marketplace';
+                }
+            }
             const ref = await db.collection('conversaciones').add(nuevaConv);
             conversacionId = ref.id;
             conversacionData = nuevaConv;
@@ -277,6 +371,14 @@ exports.procesarMensajeEntrante = functions.firestore
         if (config.knowledge_base) {
             const faqs = config.knowledge_base.map((qa) => `P: ${qa.pregunta} R: ${qa.respuesta}`).join('\n');
             systemPrompt += `\n\nInformación de soporte:\n${faqs}`;
+        }
+        // INYECCIÓN DE CONTEXTO DE PRODUCTO
+        if (conversacionData.producto_interes) {
+            console.log(`Buscando info de producto: ${conversacionData.producto_interes}`);
+            const productContext = await getProductDetails(conversacionData.producto_interes);
+            if (productContext) {
+                systemPrompt += `\n\n${productContext}`;
+            }
         }
         let respuestaIA = "";
         // Decidir qué IA usar basado en la configuración

@@ -210,13 +210,21 @@ export default function ProductosPage() {
         },
         {
             key: 'descripcion_ia',
-            header: 'Info IA',
+            header: 'Configuración',
             render: (p: Producto) => (
-                <div className="flex items-center gap-2">
-                    <Sparkles size={14} className={p.descripcion_ia ? 'text-[var(--neon-cyan)]' : 'text-gray-600'} />
-                    <span className={`text-xs ${p.descripcion_ia ? 'text-white' : 'text-gray-600'}`}>
-                        {p.descripcion_ia ? 'Configurada' : 'Pendiente'}
-                    </span>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2" title="Descripción IA">
+                        <Sparkles size={14} className={p.descripcion_ia ? 'text-[var(--neon-cyan)]' : 'text-gray-600'} />
+                        <span className={`text-xs ${p.descripcion_ia ? 'text-white' : 'text-gray-600'}`}>
+                            {p.descripcion_ia ? 'IA Lista' : 'Sin Prompt'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2" title="Link de Pago">
+                        <LinkIcon size={14} className={p.link_pago_base ? 'text-[var(--neon-green)]' : 'text-gray-600'} />
+                        <span className={`text-xs ${p.link_pago_base ? 'text-white' : 'text-gray-600'}`}>
+                            {p.link_pago_base ? 'Link OK' : 'Sin Link'}
+                        </span>
+                    </div>
                 </div>
             )
         },

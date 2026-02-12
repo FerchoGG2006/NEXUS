@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
+exports.runReengagementCampaign = exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
@@ -289,6 +289,39 @@ exports.webhookMercadoLibre = functions.https.onRequest((req, res) => {
 // ============================================
 // 2. TRIGGER DE PROCESAMIENTO (CEREBRO IA)
 // ============================================
+async function saveOrUpdateLead(senderId, platform, name, context) {
+    const leadId = `${platform}_${senderId}`; // ID único compuesto
+    const docRef = db.collection('clientes_leads').doc(leadId);
+    try {
+        const doc = await docRef.get();
+        if (doc.exists) {
+            // Actualizar Lead existente
+            await docRef.update(Object.assign({ interacciones_count: admin.firestore.FieldValue.increment(1), updated_at: new Date().toISOString() }, (name !== 'Usuario Meta' && name !== 'Cliente WhatsApp' ? { nombre: name } : {})));
+        }
+        else {
+            // Crear Nuevo Lead
+            const newLead = {
+                id: leadId,
+                nombre: name || 'Prospecto Desconocido',
+                telefono: platform === 'whatsapp' ? senderId : '',
+                facebook_id: platform === 'facebook' ? senderId : '',
+                instagram_user: platform === 'instagram' ? senderId : '',
+                plataforma_origen: platform,
+                origen: 'Chat IA Inbound',
+                estado_conversion: 'frio', // frio | tibio | caliente
+                interacciones_count: 1,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                contexto_inicial: context || ''
+            };
+            await docRef.set(newLead);
+            console.log(`[CRM] Nuevo Lead capturado: ${name} (${leadId})`);
+        }
+    }
+    catch (error) {
+        console.error('[CRM] Error guardando lead:', error);
+    }
+}
 exports.procesarMensajeEntrante = functions.firestore
     .document('mensajes_entrantes/{msgId}')
     .onCreate(async (snap, context) => {
@@ -299,6 +332,8 @@ exports.procesarMensajeEntrante = functions.firestore
         let textoUsuario = payload.texto;
         let clienteNombre = payload.sender_name;
         let clienteId = payload.sender_id;
+        // [CRM] Guardar o Actualizar Lead al recibir mensaje
+        await saveOrUpdateLead(clienteId, payload.plataforma, clienteNombre, payload.contexto_externo);
         // Para MercadoLibre, necesitamos hacer fetch extra (Mockeado para MVP)
         if (payload.plataforma === 'mercadolibre') {
             // Aquí iría axios.get(`https://api.mercadolibre.com${payload.resource_id}`)
@@ -417,9 +452,19 @@ exports.procesarMensajeEntrante = functions.firestore
         const lowerRes = respuestaIA.toLowerCase();
         if (lowerRes.includes('link de pago') || lowerRes.includes('puedes pagar')) {
             nuevoEstado = 'esperando_pago';
+            // [CRM] Upgrade a Caliente si pide pago
+            await db.collection('clientes_leads').doc(`${payload.plataforma}_${clienteId}`).update({
+                estado_conversion: 'caliente',
+                updated_at: new Date().toISOString()
+            }).catch(e => console.error('Error actualizando estado lead:', e));
         }
         else if (lowerRes.includes('datos de envío') || lowerRes.includes('dirección')) {
             nuevoEstado = 'negociando';
+            // [CRM] Upgrade a Tibio/Caliente si da datos
+            await db.collection('clientes_leads').doc(`${payload.plataforma}_${clienteId}`).update({
+                estado_conversion: 'caliente',
+                updated_at: new Date().toISOString()
+            }).catch(e => console.error('Error actualizando estado lead:', e));
         }
         await db.collection('conversaciones').doc(conversacionId).update({
             historial_chat: historialChat,
@@ -517,5 +562,52 @@ exports.getEstadisticasIA = functions.https.onRequest((req, res) => {
             res.status(500).send(error.message);
         }
     });
+});
+// ============================================
+// 3. CAMPAÑAS AUTOMATIZADAS (MARKETING)
+// ============================================
+exports.runReengagementCampaign = functions.https.onRequest(async (req, res) => {
+    // Seguridad básica (en prod usar Bearer Token)
+    if (req.query.key !== (process.env.CRON_KEY || 'nexus_cron_secret')) {
+        res.status(403).send('Forbidden');
+        return;
+    }
+    try {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // 24h atrás
+        // Buscar leads 'tibios' o 'calientes' que no se actualizan hace > 24h
+        const leadsQuery = await db.collection('clientes_leads')
+            .where('estado_conversion', 'in', ['tibio', 'caliente'])
+            .where('updated_at', '<', yesterday.toISOString())
+            .limit(10) // Límite de seguridad para MVP
+            .get();
+        const results = [];
+        await Promise.all(leadsQuery.docs.map(async (doc) => {
+            const lead = doc.data();
+            // Evitar re-enviar si ya fue contactado recientemente (campo custom)
+            if (lead.last_reengagement && new Date(lead.last_reengagement) > yesterday)
+                return;
+            // Generar Mensaje de Reactivación
+            let mensajeNudge = `Hola ${lead.nombre}, notamos que te interesaste en nuestros productos. ¿Sigues buscando?`;
+            // Si hay contexto, personalizar
+            if (lead.contexto_inicial) {
+                mensajeNudge = `Hola ${lead.nombre}, vimos que preguntaste por un artículo en Marketplace. Aún tenemos stock disponible. ¿Te gustaría reservarlo?`;
+            }
+            // [MOCK] Enviar mensaje
+            // Aquí iría la llamada real a Meta API
+            console.log(`>>> [CAMPAÑA] Enviando Nudge a ${lead.nombre} (${lead.plataforma_origen}): "${mensajeNudge}"`);
+            // Actualizar Lead para no spammear
+            await doc.ref.update({
+                last_reengagement: now.toISOString(),
+                interacciones_count: admin.firestore.FieldValue.increment(1)
+            });
+            results.push({ id: doc.id, nombre: lead.nombre, mensaje: mensajeNudge });
+        }));
+        res.json({ success: true, processed: results.length, details: results });
+    }
+    catch (error) {
+        console.error('Error en campaña:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 //# sourceMappingURL=index.js.map

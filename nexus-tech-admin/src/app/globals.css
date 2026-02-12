@@ -58,6 +58,47 @@
     @apply bg-white/5 border border-white/10 text-white font-medium rounded-xl transition-all duration-200;
     @apply hover:bg-white/10 hover:border-white/20;
   }
+
+  /* --- MODERN GLASS TABLE --- */
+  .table-glass-wrapper {
+    @apply w-full overflow-hidden rounded-2xl border border-white/10 bg-gray-900/40 backdrop-blur-md shadow-2xl;
+  }
+
+  .table-glass {
+    @apply w-full text-left border-collapse;
+  }
+
+  .table-glass thead {
+    @apply bg-white/5 border-b border-white/10;
+  }
+
+  .table-glass th {
+    @apply px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider transition-colors;
+  }
+
+  .table-glass tbody tr {
+    @apply border-b border-white/5 transition-all duration-200;
+  }
+
+  .table-glass tbody tr:last-child {
+    @apply border-0;
+  }
+
+  .table-glass tbody tr:hover {
+    @apply bg-white/[0.03];
+  }
+
+  .table-glass td {
+    @apply px-6 py-4 text-sm text-gray-300;
+  }
+
+  .pagination-btn {
+    @apply p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all;
+  }
+
+  .pagination-btn.active {
+    @apply bg-[var(--neon-purple)] text-white shadow-[0_0_10px_var(--neon-purple-glow)];
+  }
 }
 
 @layer utilities {

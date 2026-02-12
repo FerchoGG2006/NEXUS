@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Inbox, Loader2 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 
 interface Column<T> {
@@ -8,6 +8,7 @@ interface Column<T> {
     header: string
     render?: (item: T) => React.ReactNode
     sortable?: boolean
+    className?: string
 }
 
 interface DataTableProps<T> {
@@ -28,7 +29,7 @@ export function DataTable<T extends { id?: string }>({
     searchKeys = [],
     pageSize = 10,
     isLoading = false,
-    emptyMessage = 'No hay datos para mostrar',
+    emptyMessage = 'No hay datos disponibles',
     onRowClick,
 }: DataTableProps<T>) {
     const [search, setSearch] = useState('')
@@ -38,6 +39,7 @@ export function DataTable<T extends { id?: string }>({
         direction: 'asc' | 'desc'
     } | null>(null)
 
+    // Filter Logic
     const filteredData = useMemo(() => {
         if (!search || searchKeys.length === 0) return data
 
@@ -55,6 +57,7 @@ export function DataTable<T extends { id?: string }>({
         )
     }, [data, search, searchKeys])
 
+    // Sort Logic
     const sortedData = useMemo(() => {
         if (!sortConfig) return filteredData
 
@@ -71,6 +74,7 @@ export function DataTable<T extends { id?: string }>({
         })
     }, [filteredData, sortConfig])
 
+    // Pagination Logic
     const totalPages = Math.ceil(sortedData.length / pageSize)
     const paginatedData = sortedData.slice(
         (currentPage - 1) * pageSize,
@@ -80,9 +84,7 @@ export function DataTable<T extends { id?: string }>({
     const handleSort = (key: keyof T | string) => {
         setSortConfig((current) => {
             if (current?.key === key) {
-                if (current.direction === 'asc') {
-                    return { key, direction: 'desc' }
-                }
+                if (current.direction === 'asc') return { key, direction: 'desc' }
                 return null
             }
             return { key, direction: 'asc' }
@@ -98,160 +100,149 @@ export function DataTable<T extends { id?: string }>({
         }, obj)
     }
 
-    if (isLoading) {
-        return (
-            <div>
-                <div className="skeleton" style={{ height: '48px', width: '280px', marginBottom: '24px' }} />
-                <div className="table-wrapper">
-                    <div style={{ padding: 'var(--space-6)' }}>
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="skeleton" style={{ height: '48px', marginBottom: '12px' }} />
-                        ))}
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div>
-            {/* Search */}
+        <div className="space-y-4">
+            {/* Header / Search */}
             {searchable && (
-                <div className="input-group" style={{ maxWidth: '320px', marginBottom: 'var(--space-6)' }}>
-                    <div className="input-icon">
-                        <Search />
+                <div className="flex justify-between items-center bg-white/5 p-2 rounded-xl border border-white/10 backdrop-blur-sm">
+                    <div className="relative w-full max-w-sm group">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-[var(--neon-cyan)] transition-colors">
+                            <Search size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar en la base de datos..."
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="bg-gray-900/50 border border-white/5 text-gray-200 text-sm rounded-lg focus:ring-[var(--neon-cyan)] focus:border-[var(--neon-cyan)] block w-full pl-10 p-2.5 transition-all outline-none placeholder-gray-600"
+                        />
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value)
-                            setCurrentPage(1)
-                        }}
-                        className="input input--with-icon"
-                    />
                 </div>
             )}
 
             {/* Table */}
-            <div className="table-wrapper">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            {columns.map((column) => (
-                                <th
-                                    key={column.key.toString()}
-                                    onClick={() => column.sortable && handleSort(column.key)}
-                                    style={{ cursor: column.sortable ? 'pointer' : 'default' }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {column.header}
-                                        {column.sortable && sortConfig?.key === column.key && (
-                                            <span style={{ color: 'var(--color-primary-light)' }}>
-                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </div>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {paginatedData.length === 0 ? (
+            <div className="table-glass-wrapper">
+                {isLoading ? (
+                    <div className="p-12 flex flex-col items-center justify-center text-gray-500 space-y-3">
+                        <Loader2 className="animate-spin text-[var(--neon-purple)]" size={40} />
+                        <span className="text-sm font-medium animate-pulse">Sincronizando datos...</span>
+                    </div>
+                ) : (
+                    <table className="table-glass">
+                        <thead>
                             <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--color-text-muted)' }}
-                                >
-                                    {emptyMessage}
-                                </td>
+                                {columns.map((column) => (
+                                    <th
+                                        key={column.key.toString()}
+                                        onClick={() => column.sortable && handleSort(column.key)}
+                                        className={`${column.sortable ? 'cursor-pointer hover:text-white group' : ''} ${column.className || ''}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {column.header}
+                                            {column.sortable && sortConfig?.key === column.key && (
+                                                <span className={`text-[var(--neon-cyan)] text-[10px] transform transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`}>
+                                                    ▲
+                                                </span>
+                                            )}
+                                        </div>
+                                    </th>
+                                ))}
                             </tr>
-                        ) : (
-                            paginatedData.map((item, index) => (
-                                <tr
-                                    key={item.id || index}
-                                    onClick={() => onRowClick?.(item)}
-                                    style={{ cursor: onRowClick ? 'pointer' : 'default' }}
-                                >
-                                    {columns.map((column) => (
-                                        <td key={column.key.toString()}>
-                                            {column.render
-                                                ? column.render(item)
-                                                : String(getNestedValue(item, column.key as string) ?? '-')}
-                                        </td>
-                                    ))}
+                        </thead>
+                        <tbody>
+                            {paginatedData.length === 0 ? (
+                                <tr>
+                                    <td colSpan={columns.length}>
+                                        <div className="p-12 flex flex-col items-center justify-center text-gray-500 space-y-2 opacity-60">
+                                            <Inbox size={48} strokeWidth={1} />
+                                            <p className="text-sm font-medium">{emptyMessage}</p>
+                                        </div>
+                                    </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                paginatedData.map((item, index) => (
+                                    <tr
+                                        key={item.id || index}
+                                        onClick={() => onRowClick?.(item)}
+                                        className={onRowClick ? 'cursor-pointer hover:bg-white/5' : ''}
+                                    >
+                                        {columns.map((column) => (
+                                            <td key={column.key.toString()} className={column.className}>
+                                                {column.render
+                                                    ? column.render(item)
+                                                    : String(getNestedValue(item, column.key as string) ?? '-')}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="pagination">
-                    <p className="pagination-info">
-                        Mostrando {(currentPage - 1) * pageSize + 1} a{' '}
-                        {Math.min(currentPage * pageSize, sortedData.length)} de {sortedData.length} resultados
+            {!isLoading && totalPages > 1 && (
+                <div className="flex items-center justify-between px-2">
+                    <p className="text-xs text-gray-500 font-mono">
+                        {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, sortedData.length)} / {sortedData.length}
                     </p>
 
-                    <div className="pagination-controls">
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={() => setCurrentPage(1)}
                             disabled={currentPage === 1}
                             className="pagination-btn"
-                            aria-label="Primera página"
                         >
-                            <ChevronsLeft style={{ width: '18px', height: '18px' }} />
+                            <ChevronsLeft size={16} />
                         </button>
                         <button
                             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                             className="pagination-btn"
-                            aria-label="Página anterior"
                         >
-                            <ChevronLeft style={{ width: '18px', height: '18px' }} />
+                            <ChevronLeft size={16} />
                         </button>
 
-                        {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                            let pageNum: number
-                            if (totalPages <= 5) {
-                                pageNum = i + 1
-                            } else if (currentPage <= 3) {
-                                pageNum = i + 1
-                            } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i
-                            } else {
-                                pageNum = currentPage - 2 + i
-                            }
+                        <div className="flex items-center gap-1 px-2">
+                            {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                                let pageNum = i + 1
+                                if (totalPages > 5) {
+                                    if (currentPage > 3 && currentPage < totalPages - 2) pageNum = currentPage - 2 + i
+                                    else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
+                                }
 
-                            return (
-                                <button
-                                    key={pageNum}
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
-                                >
-                                    {pageNum}
-                                </button>
-                            )
-                        })}
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum
+                                                ? 'bg-[var(--neon-cyan)] text-black shadow-[0_0_10px_var(--neon-cyan-glow)]'
+                                                : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                                            }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                )
+                            })}
+                        </div>
 
                         <button
                             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                             className="pagination-btn"
-                            aria-label="Página siguiente"
                         >
-                            <ChevronRight style={{ width: '18px', height: '18px' }} />
+                            <ChevronRight size={16} />
                         </button>
                         <button
                             onClick={() => setCurrentPage(totalPages)}
                             disabled={currentPage === totalPages}
                             className="pagination-btn"
-                            aria-label="Última página"
                         >
-                            <ChevronsRight style={{ width: '18px', height: '18px' }} />
+                            <ChevronsRight size={16} />
                         </button>
                     </div>
                 </div>

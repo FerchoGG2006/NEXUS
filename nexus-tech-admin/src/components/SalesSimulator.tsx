@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore'
 import { db, getProductos, getConfiguracionIA } from '@/lib/firebase'
+import { formatPrice } from '@/lib/currency'
 import { Send, User, Zap, BookOpen } from 'lucide-react'
 import type { Producto } from '@/types/firestore'
 
@@ -35,8 +36,8 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                 // Si no hay Firebase configurado, cargamos demos para la UI
                 if (!db) {
                     const demos = [
-                        { id: 'demo1', name: 'Producto Demo 1', price: 99.99, description_ia: 'Demo' },
-                        { id: 'demo2', name: 'Producto Demo 2', price: 49.50, description_ia: 'Demo' }
+                        { id: 'demo1', name: 'Producto Demo 1', price: 150000, description_ia: 'Demo' },
+                        { id: 'demo2', name: 'Producto Demo 2', price: 45000, description_ia: 'Demo' }
                     ]
                     setProducts(demos)
                     setSelectedProduct(demos[0])
@@ -162,7 +163,7 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                                                 onClick={() => setSelectedProduct(p)}
                                             >
                                                 <div className="product-name">{p.name}</div>
-                                                <div className="product-price">${p.price}</div>
+                                                <div className="product-price">{formatPrice(p.price)}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -199,11 +200,67 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                             <div className="success-icon">🎉</div>
                             <h4>¡Simulación Iniciada!</h4>
                             <p>La IA ha recibido el mensaje y ha respondido.</p>
+
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    className="btn btn--secondary flex-1"
+                                    onClick={() => { setStep(1); setLogs([]); }}
+                                >
+                                    Reiniciar
+                                </button>
+                                <button
+                                    className="btn btn--primary flex-1"
+                                    onClick={() => setStep(3)}
+                                >
+                                    Simular Pago 💸
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 3 && (
+                        <div className="payment-view">
+                            <h4>Simulador de Pasarela</h4>
+                            <p className="text-sm text-gray-400 mb-4">Simula que el cliente pagó por {selectedProduct.name}</p>
+
                             <button
-                                className="btn btn--secondary mt-4"
-                                onClick={() => { setStep(1); setLogs([]); }}
+                                className="btn btn--primary w-full"
+                                onClick={async () => {
+                                    setIsThinking(true)
+                                    addLog('💳 Iniciando transacción simulada...')
+                                    try {
+                                        const res = await fetch('http://127.0.0.1:5001/nexus-autosales/us-central1/webhookPagoSimulado', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                sku: selectedProduct.id, // Usamos ID como SKU en demo
+                                                cliente_id: 'SIM_USER_' + Date.now(),
+                                                cantidad: 1,
+                                                datos_envio: { ciudad: 'Lima Central' }
+                                            })
+                                        })
+                                        const data = await res.json()
+                                        if (data.success) {
+                                            addLog('✅ Pago Aprobado. Orden: ' + data.order_id)
+                                            addLog('🚚 Dispatch auto-asignado.')
+                                        } else {
+                                            addLog('❌ Error pago: ' + data.error)
+                                        }
+                                    } catch (e: any) {
+                                        addLog('❌ Error conexión: ' + e.message)
+                                    }
+                                    setIsThinking(false)
+                                }}
+                                disabled={isThinking}
                             >
-                                Probar otra vez
+                                {isThinking ? 'Procesando...' : 'Confirmar Pago (' + formatPrice(selectedProduct.price) + ')'}
+                            </button>
+
+                            <button
+                                className="btn btn--text mt-2 w-full"
+                                onClick={() => setStep(2)}
+                            >
+                                Volver
                             </button>
                         </div>
                     )}
@@ -235,12 +292,37 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                     max-width: 450px;
                     border: 1px solid var(--color-accent-amber);
                     box-shadow: 0 0 50px rgba(245, 158, 11, 0.15);
+                    background: #111;
+                    color: #fff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                }
+
+                .card-header {
+                    padding: 16px;
+                    border-bottom: 1px solid #333;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: #1a1a1a;
+                }
+
+                .card-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 0;
+                    font-size: 1.1rem;
+                }
+
+                .simulator-body {
+                    padding: 20px;
                 }
 
                 .btn-close {
                     background: none;
                     border: none;
-                    color: var(--color-text-muted);
+                    color: #666;
                     font-size: 24px;
                     cursor: pointer;
                 }
@@ -255,25 +337,26 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
 
                 .product-option {
                     padding: 10px;
-                    border: 1px solid var(--color-border);
-                    border-radius: var(--radius-md);
+                    border: 1px solid #333;
+                    border-radius: 8px;
                     cursor: pointer;
                     display: flex;
                     justify-content: space-between;
                     transition: all 0.2s;
+                    background: #222;
                 }
 
                 .product-option:hover {
-                    background: var(--color-bg-tertiary);
+                    background: #333;
                 }
 
                 .product-option.active {
-                    border-color: var(--color-primary);
-                    background: rgba(99, 102, 241, 0.1);
+                    border-color: var(--neon-purple, #a855f7);
+                    background: rgba(168, 85, 247, 0.1);
                 }
 
                 .product-name { font-weight: 500; font-size: 0.9rem; }
-                .product-price { color: var(--color-accent-emerald); font-weight: 600; }
+                .product-price { color: var(--neon-green, #4ade80); font-weight: 600; }
 
                 .input-wrapper {
                     position: relative;
@@ -285,35 +368,77 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                     left: 12px;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: var(--color-text-muted);
+                    color: #666;
                 }
 
                 .input {
                     padding-left: 36px;
                     width: 100%;
+                    background: #222;
+                    border: 1px solid #333;
+                    color: white;
+                    padding: 10px 10px 10px 36px;
+                    border-radius: 8px;
                 }
 
                 .logs-terminal {
                     margin-top: 20px;
                     background: #000;
                     padding: 12px;
-                    border-radius: var(--radius-md);
+                    border-radius: 8px;
                     font-family: monospace;
                     font-size: 0.75rem;
                     height: 120px;
                     overflow-y: auto;
-                    border: 1px solid var(--color-border);
+                    border: 1px solid #333;
                 }
 
                 .log-line { color: #4ade80; margin-bottom: 4px; }
                 .log-placeholder { color: #666; font-style: italic; }
 
-                .success-view {
+                .success-view, .payment-view {
                     text-align: center;
                     padding: 20px 0;
                 }
                 .success-icon { font-size: 40px; margin-bottom: 10px; }
                 
+                .btn {
+                    padding: 10px 16px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    border: none;
+                    transition: all 0.2s;
+                }
+                
+                .btn--primary {
+                    background: var(--neon-purple, #8b5cf6);
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+                
+                .btn--primary:hover {
+                    background: #7c3aed;
+                }
+
+                .btn--secondary {
+                    background: #333;
+                    color: white;
+                }
+                
+                .btn--text {
+                    background: none;
+                    color: #999;
+                }
+                
+                .btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
             `}</style>
         </div>

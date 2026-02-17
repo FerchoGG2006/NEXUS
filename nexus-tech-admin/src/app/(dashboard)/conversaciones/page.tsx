@@ -42,7 +42,7 @@ const getDemoConversaciones = (): Conversacion[] => [
             { rol: 'cliente', tipo: 'imagen', url: 'https://images.unsplash.com/photo-1603313011101-320f721612d9?w=300&q=80', contenido: 'Me refiero a este modelo en específico.', timestamp: new Date(Date.now() - 295000).toISOString() },
             { rol: 'ia', contenido: '¡Hola María! 👋 Sí, tenemos ese modelo exacto en stock. Es el Titan Grey. ¿Te gustaría proceder con la compra?', timestamp: new Date(Date.now() - 290000).toISOString() },
             { rol: 'cliente', contenido: 'Sí, ¿cuánto cuesta y hacen envíos a Medellín?', timestamp: new Date(Date.now() - 200000).toISOString() },
-            { rol: 'ia', contenido: 'El precio es $29.99 USD. Sí, hacemos envíos a todo Colombia. El envío a Medellín es gratis por compras mayores a $25. ¿Quieres que te envíe el link de pago?', timestamp: new Date(Date.now() - 190000).toISOString() },
+            { rol: 'ia', contenido: 'El precio es $89.900 COP. Sí, hacemos envíos a todo Colombia. El envío a Medellín es gratis por compras mayores a $150.000. ¿Quieres que te envíe el link de pago?', timestamp: new Date(Date.now() - 190000).toISOString() },
         ],
         pago_confirmado: false,
         updated_at: new Date(Date.now() - 190000).toISOString(),

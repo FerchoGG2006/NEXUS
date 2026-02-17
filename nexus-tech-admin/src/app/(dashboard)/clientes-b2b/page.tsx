@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getClientesB2B, create, update, remove, COLLECTIONS, isFirebaseConfigured } from '@/lib/firebase'
 import { DataTable, Badge, Modal, Alert } from '@/components/ui'
+import { formatPrice } from '@/lib/currency'
 import { Plus, Pencil, Trash2, Building2, DollarSign, Briefcase, MapPin, Mail, Phone, CreditCard } from 'lucide-react'
 
 interface ClienteB2B {
@@ -202,7 +203,7 @@ export default function ClientesB2BPage() {
                         <CreditCard className="w-6 h-6 text-cyan-400" />
                     </div>
                     <div>
-                        <p className="text-3xl font-bold text-white">${clientes.reduce((a, c) => a + c.linea_credito, 0).toFixed(2)}</p>
+                        <p className="text-3xl font-bold text-white">{formatPrice(clientes.reduce((a, c) => a + c.linea_credito, 0))}</p>
                         <p className="text-xs text-cyan-300 uppercase tracking-wider font-bold">Línea Total</p>
                     </div>
                 </div>
@@ -212,7 +213,7 @@ export default function ClientesB2BPage() {
                         <DollarSign className="w-6 h-6 text-amber-400" />
                     </div>
                     <div>
-                        <p className="text-3xl font-bold text-white">${clientes.reduce((a, c) => a + c.saldo_pendiente, 0).toFixed(2)}</p>
+                        <p className="text-3xl font-bold text-white">{formatPrice(clientes.reduce((a, c) => a + c.saldo_pendiente, 0))}</p>
                         <p className="text-xs text-amber-400 uppercase tracking-wider font-bold">Cartera x Cobrar</p>
                     </div>
                 </div>

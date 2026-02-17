@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { getProductos, create, update, remove, COLLECTIONS, isFirebaseConfigured } from '@/lib/firebase'
 import { DataTable, Modal, Alert, Badge } from '@/components/ui'
+import { formatPrice } from '@/lib/currency'
 import { Plus, Pencil, Trash2, Package, AlertTriangle, Sparkles, Image as ImageIcon, Link as LinkIcon, Search } from 'lucide-react'
 import type { Producto } from '@/types/firestore'
 
@@ -16,9 +17,9 @@ const demoProductos: Producto[] = [
         descripcion_ia: 'Funda de silicona suave al tacto, interior de microfibra, protección contra caídas de 2m. Compatible con MagSafe. Colores: Negro, Azul, Verde.',
         stock: 50,
         stock_minimo: 10,
-        costo_compra: 12,
-        precio_retail: 29.99,
-        precio_b2b: 22,
+        costo_compra: 35000,
+        precio_retail: 89900,
+        precio_b2b: 65000,
         categoria: 'Fundas',
         link_pago_base: 'https://link.pago/case-iphone',
         imagenes: [],
@@ -31,6 +32,7 @@ const demoProductos: Producto[] = [
 const categorias = ['Audio', 'Cargadores', 'Cables', 'Fundas', 'Protectores', 'Accesorios', 'Gaming', 'Smartwatch']
 
 export default function ProductosPage() {
+    // ... state ...
     const [productos, setProductos] = useState<Producto[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDemo, setIsDemo] = useState(false)
@@ -57,6 +59,8 @@ export default function ProductosPage() {
     })
 
     useEffect(() => { loadProductos() }, [])
+
+    // ... functions ...
 
     const loadProductos = async () => {
         setIsLoading(true)
@@ -204,7 +208,7 @@ export default function ProductosPage() {
             header: 'Precio',
             render: (p: Producto) => (
                 <span className="text-[var(--neon-green)] font-bold tracking-wide">
-                    ${p.precio_retail.toFixed(2)}
+                    {formatPrice(p.precio_retail)}
                 </span>
             )
         },

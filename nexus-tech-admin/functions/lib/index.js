@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runReengagementCampaign = exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
+exports.runReengagementCampaign = exports.webhookPagoSimulado = exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
@@ -128,7 +128,7 @@ async function getProductDetails(searchKey) {
     [CONTEXTO DEL PRODUCTO SELECCIONADO]
     - Nombre: ${p.nombre}
     - SKU: ${p.sku}
-    - Precio: $${p.precio_retail}
+    - Precio: $${p.precio_retail} COP
     - Stock Actual: ${p.stock} unidades
     - Descripción Técnica: ${p.descripcion_ia || 'Sin descripción específica.'}
     - LINK DE PAGO: ${p.link_pago_base || 'No disponible (Solicitar generación manual)'}
@@ -136,7 +136,7 @@ async function getProductDetails(searchKey) {
     [INSTRUCCIONES DE VENTA]
     1. Si el stock es 0, di que no hay disponible.
     2. Usa la información de precio y características para responder dudas.
-    3. Si preguntan precio, dalo exactamente como figura aquí.
+    3. Si preguntan precio, siempre menciona que es en PESOS COLOMBIANOS (COP).
     4. CIERRE DE VENTA: Si el cliente confirma interés, envía EXCLUSIVAMENTE este link de pago: ${p.link_pago_base || '(Indica que generarás uno)'}
     `.trim();
 }
@@ -563,9 +563,173 @@ exports.getEstadisticasIA = functions.https.onRequest((req, res) => {
         }
     });
 });
-// ============================================
-// 3. CAMPAÑAS AUTOMATIZADAS (MARKETING)
-// ============================================
+async function createOrder(payload) {
+    const orderRef = db.collection('pedidos_despacho').doc();
+    await db.runTransaction(async (t) => {
+        var _a;
+        // 0. VALIDACIONES DE NEGOCIO (B2B)
+        if (payload.es_b2b) {
+            const clienteRef = db.collection('clientes_b2b').doc(payload.cliente_id);
+            const clienteDoc = await t.get(clienteRef);
+            if (!clienteDoc.exists)
+                throw new Error(`Cliente B2B ${payload.cliente_id} no encontrado`);
+            const clienteData = clienteDoc.data();
+            const nuevoSaldo = (clienteData.saldo_pendiente || 0) + payload.total;
+            if (nuevoSaldo > clienteData.linea_credito) {
+                throw new Error(`Crédito insuficiente. Línea: $${clienteData.linea_credito} | Saldo actual: $${clienteData.saldo_pendiente} | Intento: $${payload.total}`);
+            }
+            // Actualizar Saldo
+            t.update(clienteRef, {
+                saldo_pendiente: nuevoSaldo,
+                updated_at: new Date().toISOString()
+            });
+            console.log(`[B2B] Crédito aprobado para ${clienteData.razon_social}. Nuevo saldo: $${nuevoSaldo}`);
+        }
+        // 1. Verificar Stock de todos los items
+        const stockUpdates = [];
+        for (const item of payload.items) {
+            const prodRef = db.collection('productos').doc(item.producto_id);
+            const prodDoc = await t.get(prodRef);
+            if (!prodDoc.exists)
+                throw new Error(`Producto ${item.sku} no existe`);
+            const prodData = prodDoc.data();
+            if (prodData.stock < item.cantidad) {
+                throw new Error(`Stock insuficiente para ${item.nombre}. Disponible: ${prodData.stock}`);
+            }
+            stockUpdates.push({ ref: prodRef, newStock: prodData.stock - item.cantidad });
+        }
+        // 2. Descontar Stock
+        for (const update of stockUpdates) {
+            t.update(update.ref, {
+                stock: update.newStock,
+                updated_at: new Date().toISOString()
+            });
+        }
+        // 3. GESTIÓN DE AFILIADOS
+        let affiliateId = null;
+        let comisionGenerada = 0;
+        if (payload.referral_code) {
+            const afiQuery = await t.get(db.collection('afiliados').where('codigo_referido', '==', payload.referral_code).limit(1));
+            if (!afiQuery.empty) {
+                const afiDoc = afiQuery.docs[0];
+                const afiData = afiDoc.data();
+                // Calcular Comisión
+                comisionGenerada = (payload.total * afiData.comision_porcentaje) / 100;
+                affiliateId = afiDoc.id;
+                // Actualizar Balance Afiliado
+                t.update(afiDoc.ref, {
+                    balance_acumulado: admin.firestore.FieldValue.increment(comisionGenerada),
+                    updated_at: new Date().toISOString()
+                });
+                console.log(`[AFILIADOS] Comisión de $${comisionGenerada} generada para ${afiData.nombre} (Ref: ${payload.referral_code})`);
+            }
+        }
+        // 4. LOGÍSTICA AUTOMATIZADA (AUTO-DISPATCH)
+        let despachoEstado = 'pendiente';
+        let courierAsignado = null;
+        let gastosEnvio = 0;
+        if ((_a = payload.datos_envio) === null || _a === void 0 ? void 0 : _a.ciudad) {
+            const ciudad = payload.datos_envio.ciudad.toLowerCase();
+            // Simulación de Asignación Inteligente
+            if (ciudad.includes('lima') || ciudad.includes('callao')) {
+                courierAsignado = 'FLOTA_PROPIA_MOTO_01';
+                despachoEstado = 'preparando'; // Auto-aprobar para zona urbana
+                gastosEnvio = 10000;
+            }
+            else {
+                courierAsignado = 'SHALOM_CARGO';
+                despachoEstado = 'pendiente'; // Requiere validación manual para provincia
+                gastosEnvio = 25000;
+            }
+            console.log(`[DISPATCH] Asignado a ${courierAsignado} (Zona: ${ciudad})`);
+        }
+        // 5. Crear Pedido
+        t.set(orderRef, {
+            id: orderRef.id,
+            cliente_id: payload.cliente_id,
+            cliente_nombre: payload.cliente_nombre,
+            plataforma: payload.plataforma,
+            items: payload.items,
+            total: payload.total,
+            gastos_envio: gastosEnvio,
+            total_con_envio: payload.total + gastosEnvio,
+            estado: despachoEstado,
+            pago_estado: payload.origen_pago === 'credito_b2b' ? 'credito' : 'pagado',
+            origen_pago: payload.origen_pago,
+            external_reference: payload.external_reference || '',
+            datos_envio: payload.datos_envio || {},
+            es_b2b: payload.es_b2b || false,
+            afiliado_id: affiliateId,
+            comision_afiliado: comisionGenerada,
+            courier_asignado: courierAsignado,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+        // 5. Actualizar Lead a "Comprador" (Si no es B2B)
+        if (!payload.es_b2b) {
+            const leadRef = db.collection('clientes_leads').doc(`${payload.plataforma}_${payload.cliente_id}`);
+            t.set(leadRef, {
+                estado_conversion: 'comprador',
+                ultima_compra: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, { merge: true });
+        }
+    });
+    console.log(`✅ Pedido Creado Exitosamente: ${orderRef.id} por $${payload.total}`);
+    return orderRef.id;
+}
+// Webhook Simulado de Pago (Para pruebas sin Gateway real)
+exports.webhookPagoSimulado = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        try {
+            const { sku, cantidad, cliente_id, cliente_nombre, plataforma, direccion, referral_code, es_b2b } = req.body;
+            if (!sku || !cliente_id) {
+                res.status(400).json({ error: 'Faltan datos (sku, cliente_id)' });
+                return;
+            }
+            // Buscar producto por SKU
+            const prodQuery = await db.collection('productos').where('sku', '==', sku).limit(1).get();
+            if (prodQuery.empty) {
+                res.status(404).json({ error: 'Producto no encontrado' });
+                return;
+            }
+            const prodDoc = prodQuery.docs[0];
+            const prodData = prodDoc.data();
+            const qty = cantidad || 1;
+            // Si es B2B, usar precio B2B
+            const unitPrice = es_b2b ? prodData.precio_b2b : prodData.precio_retail;
+            const total = unitPrice * qty;
+            const orderId = await createOrder({
+                cliente_id,
+                cliente_nombre: cliente_nombre || (es_b2b ? 'Empresa B2B' : 'Cliente Web'),
+                plataforma: plataforma || 'web',
+                items: [{
+                        producto_id: prodDoc.id,
+                        sku: prodData.sku,
+                        nombre: prodData.nombre,
+                        cantidad: qty,
+                        precio_unitario: unitPrice,
+                        subtotal: total
+                    }],
+                total: total,
+                origen_pago: es_b2b ? 'credito_b2b' : 'simulado',
+                datos_envio: {
+                    direccion: direccion || 'Dirección de prueba',
+                    ciudad: 'Ciudad Demo',
+                    telefono: cliente_id
+                },
+                external_reference: `SIM-${Date.now()}`,
+                referral_code,
+                es_b2b
+            });
+            res.json({ success: true, order_id: orderId, message: 'Orden procesada correctamente.' });
+        }
+        catch (error) {
+            console.error('Error en pago simulado:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+});
 exports.runReengagementCampaign = functions.https.onRequest(async (req, res) => {
     // Seguridad básica (en prod usar Bearer Token)
     if (req.query.key !== (process.env.CRON_KEY || 'nexus_cron_secret')) {

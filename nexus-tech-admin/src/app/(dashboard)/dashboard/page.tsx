@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getMetricasDashboard, subscribeToConversaciones, subscribeToPedidosDespacho, isFirebaseConfigured } from '@/lib/firebase'
+import { formatPrice } from '@/lib/currency'
 import { TrendingUp, DollarSign, MessageSquare, Truck, Bot, Package, ArrowRight, Sparkles } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -37,8 +38,8 @@ interface PedidoDespacho {
 }
 
 const demoMetrics: Metrics = {
-    ganancia_neta_total: 15420.50,
-    total_ventas: 42350.00,
+    ganancia_neta_total: 61682000,
+    total_ventas: 169400000,
     numero_transacciones: 156,
     conversaciones_activas: 5,
     pedidos_pendientes: 3,
@@ -52,8 +53,8 @@ const demoConversaciones: Conversacion[] = [
 ]
 
 const demoPedidos: PedidoDespacho[] = [
-    { id: '1', producto_nombre: 'AirPods Case', cliente_datos: { nombre_completo: 'Ana Martínez' }, total: 19.99, ganancia_neta: 13.99, estado: 'pendiente', created_at: new Date().toISOString() },
-    { id: '2', producto_nombre: 'iPhone 15 Pro Case', cliente_datos: { nombre_completo: 'Juan López' }, total: 29.99, ganancia_neta: 17.99, estado: 'pendiente', created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: '1', producto_nombre: 'AirPods Case', cliente_datos: { nombre_completo: 'Ana Martínez' }, total: 79900, ganancia_neta: 55900, estado: 'pendiente', created_at: new Date().toISOString() },
+    { id: '2', producto_nombre: 'iPhone 15 Pro Case', cliente_datos: { nombre_completo: 'Juan López' }, total: 119900, ganancia_neta: 71900, estado: 'pendiente', created_at: new Date(Date.now() - 3600000).toISOString() },
 ]
 
 const plataformaEmoji: Record<string, string> = {
@@ -68,10 +69,6 @@ const estadoLabels: Record<string, { label: string; class: string }> = {
     negociando: { label: 'Negociando', class: 'badge badge--warning' },
     esperando_pago: { label: 'Esperando Pago', class: 'badge badge--primary' },
     cerrada: { label: 'Cerrada', class: 'badge badge--success' }
-}
-
-const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(val)
 }
 
 export default function DashboardPage() {
@@ -227,7 +224,7 @@ export default function DashboardPage() {
                         <div className="stat-icon"><DollarSign size={24} /></div>
                         <div>
                             <p className="stat-label">Ganancia Neta</p>
-                            <p className="stat-value text-emerald-400">{formatCurrency(metrics.ganancia_neta_total)}</p>
+                            <p className="stat-value text-emerald-400">{formatPrice(metrics.ganancia_neta_total)}</p>
                         </div>
                     </article>
 
@@ -235,7 +232,7 @@ export default function DashboardPage() {
                         <div className="stat-icon"><TrendingUp size={24} /></div>
                         <div>
                             <p className="stat-label">Ventas Totales</p>
-                            <p className="stat-value text-blue-400">{formatCurrency(metrics.total_ventas)}</p>
+                            <p className="stat-value text-blue-400">{formatPrice(metrics.total_ventas)}</p>
                         </div>
                     </article>
 
@@ -315,7 +312,7 @@ export default function DashboardPage() {
                                         <div className="text-xs text-gray-500">{pedido.cliente_datos.nombre_completo}</div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-mono text-emerald-400 text-sm">+{formatCurrency(pedido.ganancia_neta)}</div>
+                                        <div className="font-mono text-emerald-400 text-sm">+{formatPrice(pedido.ganancia_neta)}</div>
                                         <div className="text-[10px] text-gray-500 uppercase tracking-wider">Ganancia</div>
                                     </div>
                                 </div>

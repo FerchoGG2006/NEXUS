@@ -1,5 +1,6 @@
 'use client'
 
+import { formatPrice } from '@/lib/currency'
 import { TrendingUp, TrendingDown, LucideIcon } from 'lucide-react'
 
 interface StatsCardProps {
@@ -49,11 +50,7 @@ export function StatsCard({
 }: StatsCardProps) {
     const formatValue = (val: string | number) => {
         if (typeof val === 'number') {
-            return new Intl.NumberFormat('es-ES', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 2,
-            }).format(val)
+            return formatPrice(val, 'COP')
         }
         return val
     }

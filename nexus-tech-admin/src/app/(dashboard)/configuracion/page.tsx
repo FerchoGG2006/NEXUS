@@ -21,8 +21,8 @@ const defaultConfig: Config = {
     empresa_telefono: '+1234567890',
     empresa_email: 'contacto@nexustech.com',
     gastos_operativos_porcentaje: '5',
-    iva_porcentaje: '12',
-    moneda: 'USD'
+    iva_porcentaje: '19',
+    moneda: 'COP'
 }
 
 export default function ConfiguracionPage() {
@@ -100,10 +100,10 @@ export default function ConfiguracionPage() {
                             <div>
                                 <label className="text-xs text-gray-400 uppercase tracking-widest block mb-1.5 ml-1">Moneda Base</label>
                                 <select value={config.moneda} onChange={(e) => setConfig(p => ({ ...p, moneda: e.target.value }))} className="input-cyber w-full appearance-none">
+                                    <option value="COP">COP ($)</option>
                                     <option value="USD">USD ($)</option>
                                     <option value="EUR">EUR (€)</option>
                                     <option value="MXN">MXN ($)</option>
-                                    <option value="COP">COP ($)</option>
                                 </select>
                             </div>
                         </div>

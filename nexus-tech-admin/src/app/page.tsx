@@ -80,7 +80,7 @@ export default function HomePage() {
                 Sí, ¿qué precio tiene?
               </div>
               <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl rounded-bl-sm text-indigo-100 max-w-[90%]">
-                Cuesta $999 USD. Si te lo envío hoy, te llega mañana. ¿Te genero el link de pago? 🚀
+                Cuesta $3.999.000 COP. Si te lo envío hoy, te llega mañana. ¿Te genero el link de pago? 🚀
               </div>
 
               <div className="flex items-center gap-2 text-xs text-green-400 pt-4">
@@ -95,7 +95,7 @@ export default function HomePage() {
             <div className="p-2 bg-green-500/20 rounded-lg text-green-400"><BarChart3 size={24} /></div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-bold">Ventas Hoy</p>
-              <p className="text-lg font-bold text-white">$1,240.50</p>
+              <p className="text-lg font-bold text-white">$4,960,000</p>
             </div>
           </div>
 

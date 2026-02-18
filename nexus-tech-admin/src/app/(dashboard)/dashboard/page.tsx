@@ -169,13 +169,22 @@ export default function DashboardPage() {
             <div className="glow-bg glow-2" />
 
             {/* Header */}
-            <header className="page-header relative z-10">
+            <header className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="page-title text-gradient">
-                        <Sparkles className="icon-glow" />
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <Sparkles className="text-[var(--neon-purple)] w-8 h-8" />
                         NEXUS COMMAND CENTER
                     </h1>
-                    <p className="page-subtitle">Sistema Autónomo de Ventas & Gestión</p>
+                    <p className="text-gray-400 text-sm mt-1">Sistema Autónomo de Ventas & Gestión</p>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-lg">
+                    <div className="relative">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-400 tracking-wider">SYSTEM ONLINE</span>
+                    <div className="h-4 w-px bg-white/10 mx-1"></div>
+                    <span className="text-xs text-gray-400 font-mono">{new Date().toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
             </header>
 
@@ -348,11 +357,7 @@ export default function DashboardPage() {
                 .glow-1 { top: -100px; left: -100px; background: #6366f1; }
                 .glow-2 { bottom: -100px; right: -100px; background: #a855f7; }
 
-                .text-gradient {
-                    background: linear-gradient(to right, #fff, #94a3b8);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
+
 
                 /* Glass Panels */
                 .glass-panel {

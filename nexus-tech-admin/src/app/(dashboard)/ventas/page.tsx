@@ -6,6 +6,7 @@ import { DataTable, Badge, Modal, Alert } from '@/components/ui'
 import { Plus, ShoppingCart, DollarSign, TrendingUp, Calendar, User, Tag, Ticket } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatPrice } from '@/lib/currency'
 
 interface Venta {
     id: string
@@ -30,13 +31,13 @@ interface Producto { id: string; nombre: string; precio_retail: number; precio_b
 interface Afiliado { id: string; nombre: string; comision_porcentaje: number }
 
 const demoVentas: Venta[] = [
-    { id: '1', numero_venta: 'NTX-20260126-00001', producto_id: '1', afiliado_id: null, tipo_venta: 'Retail', cantidad: 2, precio_unitario: 59.99, subtotal: 119.98, descuento: 0, total_venta: 119.98, costo_total: 50, comision_afiliado: 0, gastos_operativos: 6, ganancia_neta: 63.98, estado: 'Completada', fecha: new Date().toISOString() },
-    { id: '2', numero_venta: 'NTX-20260126-00002', producto_id: '2', afiliado_id: '1', tipo_venta: 'Afiliado', cantidad: 5, precio_unitario: 24.99, subtotal: 124.95, descuento: 0, total_venta: 124.95, costo_total: 40, comision_afiliado: 12.50, gastos_operativos: 6.25, ganancia_neta: 66.20, estado: 'Completada', fecha: new Date().toISOString() },
+    { id: '1', numero_venta: 'NTX-20260126-00001', producto_id: '1', afiliado_id: null, tipo_venta: 'Retail', cantidad: 2, precio_unitario: 240000, subtotal: 480000, descuento: 0, total_venta: 480000, costo_total: 200000, comision_afiliado: 0, gastos_operativos: 24000, ganancia_neta: 256000, estado: 'Completada', fecha: new Date().toISOString() },
+    { id: '2', numero_venta: 'NTX-20260126-00002', producto_id: '2', afiliado_id: '1', tipo_venta: 'Afiliado', cantidad: 5, precio_unitario: 120000, subtotal: 600000, descuento: 0, total_venta: 600000, costo_total: 300000, comision_afiliado: 60000, gastos_operativos: 30000, ganancia_neta: 210000, estado: 'Completada', fecha: new Date().toISOString() },
 ]
 
 const demoProductos: Producto[] = [
-    { id: '1', nombre: 'Audífonos Bluetooth Pro', precio_retail: 59.99, precio_b2b: 45, costo_compra: 25 },
-    { id: '2', nombre: 'Cargador Inalámbrico', precio_retail: 24.99, precio_b2b: 18, costo_compra: 8 },
+    { id: '1', nombre: 'Audífonos Bluetooth Pro', precio_retail: 240000, precio_b2b: 180000, costo_compra: 100000 },
+    { id: '2', nombre: 'Cargador Inalámbrico', precio_retail: 120000, precio_b2b: 80000, costo_compra: 60000 },
 ]
 
 export default function VentasPage() {
@@ -148,14 +149,14 @@ export default function VentasPage() {
         {
             key: 'total_venta',
             header: 'Total',
-            render: (v: Venta) => <span className="text-white font-bold tracking-wide">${v.total_venta.toFixed(2)}</span>
+            render: (v: Venta) => <span className="text-white font-bold tracking-wide">{formatPrice(v.total_venta)}</span>
         },
         {
             key: 'ganancia_neta',
             header: 'Ganancia',
             render: (v: Venta) => (
                 <span className={`font-bold ${v.ganancia_neta > 0 ? 'text-[var(--neon-green)]' : 'text-red-400'}`}>
-                    ${v.ganancia_neta.toFixed(2)}
+                    {formatPrice(v.ganancia_neta)}
                 </span>
             )
         },

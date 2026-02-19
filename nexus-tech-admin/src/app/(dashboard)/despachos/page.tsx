@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { subscribeToPedidosDespacho, marcarComoEnviado, marcarComoEntregado, isFirebaseConfigured } from '@/lib/firebase'
+import { formatPrice } from '@/lib/currency'
 import { Package, Truck, CheckCircle, MapPin, Phone, Calendar, DollarSign, Printer, Search, ArrowRight, Box } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -47,10 +48,10 @@ const demoPedidos: PedidoDespacho[] = [
         producto_id: 'prod-1',
         producto_nombre: 'iPhone 15 Pro Case - Negro',
         cantidad: 1,
-        precio_unitario: 29.99,
-        total: 29.99,
-        costo_total: 12.00,
-        ganancia_neta: 17.99,
+        precio_unitario: 120000,
+        total: 120000,
+        costo_total: 48000,
+        ganancia_neta: 72000,
         plataforma: 'whatsapp',
         estado: 'pendiente',
         created_at: new Date(Date.now() - 3600000).toISOString()
@@ -67,10 +68,10 @@ const demoPedidos: PedidoDespacho[] = [
         producto_id: 'prod-2',
         producto_nombre: 'Cable USB-C 2m Premium',
         cantidad: 2,
-        precio_unitario: 12.99,
-        total: 25.98,
-        costo_total: 8.00,
-        ganancia_neta: 17.98,
+        precio_unitario: 50000,
+        total: 100000,
+        costo_total: 32000,
+        ganancia_neta: 68000,
         plataforma: 'facebook',
         estado: 'pendiente',
         created_at: new Date(Date.now() - 7200000).toISOString()
@@ -87,10 +88,10 @@ const demoPedidos: PedidoDespacho[] = [
         producto_id: 'prod-3',
         producto_nombre: 'AirPods Pro Case Silicona',
         cantidad: 1,
-        precio_unitario: 19.99,
-        total: 19.99,
-        costo_total: 6.00,
-        ganancia_neta: 13.99,
+        precio_unitario: 80000,
+        total: 80000,
+        costo_total: 24000,
+        ganancia_neta: 56000,
         plataforma: 'instagram',
         estado: 'enviado',
         tracking_number: 'COL123456789',
@@ -220,7 +221,7 @@ export default function DespachosPage() {
                     <div className="p-3 bg-cyan-500/10 rounded-lg text-cyan-500"><DollarSign size={24} /></div>
                     <div>
                         <p className="text-gray-400 text-xs uppercase tracking-wider">Ganancia Neta</p>
-                        <p className="text-2xl font-bold text-white">${gananciaTotal.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-white">{formatPrice(gananciaTotal)}</p>
                     </div>
                 </div>
             </div>
@@ -294,11 +295,11 @@ export default function DespachosPage() {
                                     <div className="bg-black/30 rounded-xl p-3 grid grid-cols-2 gap-px border border-white/5">
                                         <div className="text-center border-r border-white/5">
                                             <p className="text-[10px] text-gray-500 uppercase">Total Venta</p>
-                                            <p className="text-white font-mono font-bold">${pedido.total.toFixed(2)}</p>
+                                            <p className="text-white font-mono font-bold">{formatPrice(pedido.total)}</p>
                                         </div>
                                         <div className="text-center">
                                             <p className="text-[10px] text-gray-500 uppercase">Ganancia</p>
-                                            <p className="text-emerald-400 font-mono font-bold">+${pedido.ganancia_neta.toFixed(2)}</p>
+                                            <p className="text-emerald-400 font-mono font-bold">+{formatPrice(pedido.ganancia_neta)}</p>
                                         </div>
                                     </div>
 

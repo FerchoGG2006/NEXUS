@@ -25,9 +25,9 @@ const demoAfiliado: Afiliado = {
 }
 
 const demoProductos: Producto[] = [
-    { id: '1', sku: 'ACC-001', nombre: 'Audífonos Bluetooth Pro', descripcion: 'Audífonos premium', precio_retail: 59.99, categoria: 'Audio' },
-    { id: '2', sku: 'ACC-002', nombre: 'Cargador Inalámbrico 15W', descripcion: 'Carga rápida', precio_retail: 24.99, categoria: 'Cargadores' },
-    { id: '3', sku: 'ACC-005', nombre: 'Power Bank 10000mAh', descripcion: 'Batería portátil', precio_retail: 39.99, categoria: 'Baterías' },
+    { id: '1', sku: 'ACC-001', nombre: 'Audífonos Bluetooth Pro', descripcion: 'Audífonos premium', precio_retail: 240000, categoria: 'Audio' },
+    { id: '2', sku: 'ACC-002', nombre: 'Cargador Inalámbrico 15W', descripcion: 'Carga rápida', precio_retail: 120000, categoria: 'Cargadores' },
+    { id: '3', sku: 'ACC-005', nombre: 'Power Bank 10000mAh', descripcion: 'Batería portátil', precio_retail: 180000, categoria: 'Baterías' },
 ]
 
 const demoVentas: Venta[] = [

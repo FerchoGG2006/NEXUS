@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getProductosActivos, getClientesB2B, isFirebaseConfigured } from '@/lib/firebase'
+import { formatPrice } from '@/lib/currency'
 import { Alert } from '@/components/ui'
 import { Plus, Trash2, FileText, Download, Building2, ShoppingCart, Calculator, Calendar, FilePenLine } from 'lucide-react'
 import { jsPDF } from 'jspdf'
@@ -11,9 +12,9 @@ interface ClienteB2B { id: string; razon_social: string; ruc: string | null; con
 interface ItemCotizacion { producto_id: string; sku: string; nombre: string; cantidad: number; precio_unitario: number; subtotal: number }
 
 const demoProductos: Producto[] = [
-    { id: '1', sku: 'ACC-001', nombre: 'Audífonos Bluetooth Pro', precio_b2b: 45 },
-    { id: '2', sku: 'ACC-002', nombre: 'Cargador Inalámbrico 15W', precio_b2b: 18 },
-    { id: '3', sku: 'ACC-005', nombre: 'Power Bank 10000mAh', precio_b2b: 30 },
+    { id: '1', sku: 'ACC-001', nombre: 'Audífonos Bluetooth Pro', precio_b2b: 180000 },
+    { id: '2', sku: 'ACC-002', nombre: 'Cargador Inalámbrico 15W', precio_b2b: 72000 },
+    { id: '3', sku: 'ACC-005', nombre: 'Power Bank 10000mAh', precio_b2b: 120000 },
 ]
 
 const demoClientes: ClienteB2B[] = [

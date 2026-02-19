@@ -424,22 +424,52 @@ export default function DashboardPage() {
                 }
 
                 .btn-cyber {
-                    background: rgba(56, 189, 248, 0.1);
-                    border: 1px solid rgba(56, 189, 248, 0.3);
-                    color: #38bdf8;
-                    padding: 8px 16px;
+                    background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
                     border-radius: 8px;
                     font-size: 12px;
-                    font-weight: 600;
-                    letter-spacing: 1px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    text-transform: uppercase;
                     display: flex;
                     align-items: center;
+                    justify-content: center;
                     gap: 8px;
-                    transition: all 0.2s;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3), 
+                                0 2px 4px -1px rgba(14, 165, 233, 0.1),
+                                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
                 }
+                
+                .btn-cyber::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(
+                        90deg, 
+                        transparent, 
+                        rgba(255, 255, 255, 0.2), 
+                        transparent
+                    );
+                    transition: 0.5s;
+                }
+
                 .btn-cyber:hover {
-                    background: rgba(56, 189, 248, 0.2);
-                    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.4), 
+                                0 4px 6px -2px rgba(14, 165, 233, 0.2),
+                                0 0 20px rgba(56, 189, 248, 0.5);
+                }
+
+                .btn-cyber:hover::before {
+                    left: 100%;
                 }
 
                 /* Stats Typography */

@@ -19,9 +19,9 @@ interface Metricas {
 }
 
 const demoMetrics: Metricas = {
-    ganancia_neta_total: 15420.50, total_ventas: 42350.00, numero_transacciones: 156,
-    ventas_retail: 18500.00, ventas_b2b: 15850.00, ventas_afiliados: 8000.00,
-    comisiones_pagadas: 1200.00, productos_stock_critico: 3, afiliados_activos: 12,
+    ganancia_neta_total: 15420500, total_ventas: 42350000, numero_transacciones: 156,
+    ventas_retail: 18500000, ventas_b2b: 15850000, ventas_afiliados: 8000000,
+    comisiones_pagadas: 1200000, productos_stock_critico: 3, afiliados_activos: 12,
 }
 
 type PeriodType = 'hoy' | 'semana' | 'mes' | 'custom'
@@ -111,8 +111,8 @@ export default function ReportesPage() {
                             key={p}
                             onClick={() => setPeriod(p)}
                             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${period === p
-                                    ? 'bg-[var(--neon-cyan)] text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]'
-                                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                ? 'bg-[var(--neon-cyan)] text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
                                 }`}
                         >
                             {p === 'hoy' ? 'Hoy' : p === 'semana' ? '7 Días' : p === 'mes' ? 'Este Mes' : 'Personalizado'}
@@ -140,10 +140,38 @@ export default function ReportesPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatsCard title="Ganancia Neta" value={metrics?.ganancia_neta_total || 0} icon={TrendingUp} variant="success" isLoading={isLoading} />
-                <StatsCard title="Ventas Totales" value={metrics?.total_ventas || 0} icon={DollarSign} variant="info" isLoading={isLoading} />
-                <StatsCard title="Transacciones" value={metrics?.numero_transacciones || 0} icon={ShoppingCart} variant="default" isLoading={isLoading} />
-                <StatsCard title="Margen Operativo" value={`${margenOperativo}%`} icon={Activity} variant="warning" isLoading={isLoading} />
+                <StatsCard
+                    title="Ganancia Neta"
+                    value={metrics?.ganancia_neta_total || 0}
+                    icon={TrendingUp}
+                    variant="success"
+                    isLoading={isLoading}
+                    change={{ value: 12.5, label: 'vs mes anterior' }}
+                />
+                <StatsCard
+                    title="Ventas Totales"
+                    value={metrics?.total_ventas || 0}
+                    icon={DollarSign}
+                    variant="info"
+                    isLoading={isLoading}
+                    change={{ value: 8.2, label: 'vs mes anterior' }}
+                />
+                <StatsCard
+                    title="Transacciones"
+                    value={metrics?.numero_transacciones || 0}
+                    icon={ShoppingCart}
+                    variant="default"
+                    isLoading={isLoading}
+                    change={{ value: -2.4, label: 'vs mes anterior' }}
+                />
+                <StatsCard
+                    title="Margen Operativo"
+                    value={`${margenOperativo}%`}
+                    icon={Activity}
+                    variant="warning"
+                    isLoading={isLoading}
+                    change={{ value: 1.2, label: 'vs mes anterior' }}
+                />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

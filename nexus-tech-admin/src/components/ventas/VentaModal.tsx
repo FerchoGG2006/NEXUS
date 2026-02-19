@@ -42,25 +42,9 @@ export function VentaModal({ isOpen, onClose, onSubmit, productos, afiliados, is
         }
     }, [isOpen])
 
-    const calcularVenta = () => {
-        const producto = productos.find(p => p.id === formData.producto_id)
-        if (!producto) return { subtotal: 0, total: 0, costo: 0, comision: 0, gastos: 0, ganancia: 0 }
+    import { calcularVenta } from '@/utils/ventasUtils'
 
-        const precio = formData.tipo_venta === 'B2B' ? producto.precio_b2b : producto.precio_retail
-        const subtotal = precio * formData.cantidad
-        const total = subtotal - formData.descuento
-        const costo = producto.costo_compra * formData.cantidad
-
-        const afiliado = afiliados.find(a => a.id === formData.afiliado_id)
-        const comision = formData.tipo_venta === 'Afiliado' && afiliado
-            ? total * (afiliado.comision_porcentaje / 100)
-            : 0
-
-        const gastos = total * 0.05
-        const ganancia = total - costo - comision - gastos
-
-        return { subtotal, total, costo, comision, gastos, ganancia }
-    }
+    // Local function removed. Now using utility.
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -72,7 +56,15 @@ export function VentaModal({ isOpen, onClose, onSubmit, productos, afiliados, is
             return
         }
 
-        const calc = calcularVenta()
+        const calc = calcularVenta({
+            producto_id: formData.producto_id,
+            tipo_venta: formData.tipo_venta as any,
+            cantidad: formData.cantidad,
+            afiliado_id: formData.afiliado_id,
+            descuento: formData.descuento,
+            productos,
+            afiliados
+        })
 
         try {
             await onSubmit({
@@ -90,7 +82,15 @@ export function VentaModal({ isOpen, onClose, onSubmit, productos, afiliados, is
         }
     }
 
-    const calc = calcularVenta()
+    const calc = calcularVenta({
+        producto_id: formData.producto_id,
+        tipo_venta: formData.tipo_venta as any,
+        cantidad: formData.cantidad,
+        afiliado_id: formData.afiliado_id,
+        descuento: formData.descuento,
+        productos,
+        afiliados
+    })
 
     return (
         <Modal

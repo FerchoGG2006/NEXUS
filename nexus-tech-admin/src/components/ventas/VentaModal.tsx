@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Modal, Alert } from '@/components/ui'
 import { ShoppingCart } from 'lucide-react'
 import { Producto, Afiliado, Venta } from '@/types'
+import { calcularVenta } from '@/utils/ventasUtils'
 
 interface VentaModalProps {
     isOpen: boolean
@@ -42,7 +43,6 @@ export function VentaModal({ isOpen, onClose, onSubmit, productos, afiliados, is
         }
     }, [isOpen])
 
-    import { calcularVenta } from '@/utils/ventasUtils'
 
     // Local function removed. Now using utility.
 

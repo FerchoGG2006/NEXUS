@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { getAfiliadoByCodigo, getProductosActivos, getVentasByAfiliado, isFirebaseConfigured } from '@/lib/firebase'
 import { Badge } from '@/components/ui'
 import { DollarSign, ShoppingBag, Share2, Copy, Check, ExternalLink, TrendingUp } from 'lucide-react'
-import { use } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 interface Afiliado {
     id: string
@@ -34,8 +34,9 @@ const demoVentas: Venta[] = [
     { id: '1', numero_venta: 'NTX-001', total_venta: 119.98, comision_afiliado: 12.00, estado: 'Completada', fecha: new Date().toISOString() },
 ]
 
-export default function PortalAfiliadoPage({ params }: { params: Promise<{ codigo: string }> }) {
-    const resolvedParams = use(params)
+function PortalAfiliadoContent() {
+    const searchParams = useSearchParams()
+    const codigo = searchParams.get('codigo')
     const [afiliado, setAfiliado] = useState<Afiliado | null>(null)
     const [productos, setProductos] = useState<Producto[]>([])
     const [ventas, setVentas] = useState<Venta[]>([])
@@ -44,20 +45,30 @@ export default function PortalAfiliadoPage({ params }: { params: Promise<{ codig
     const [copied, setCopied] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => { loadData() }, [resolvedParams.codigo])
+    useEffect(() => { loadData() }, [codigo])
 
     const loadData = async () => {
         setIsLoading(true)
 
+        if (!codigo) {
+            // Si no hay código, mostrar error o demo si es root?
+            // Asumimos error
+            // setError('Código de afiliado no proporcionado')
+            // Pero para demo, si entran directo, tal vez mostrar demo?
+            // setError('Código requerido (?codigo=...)')
+            setIsLoading(false)
+            return
+        }
+
         if (!isFirebaseConfigured()) {
-            if (resolvedParams.codigo === 'CARLOS2024') {
+            if (codigo === 'CARLOS2024') {
                 setIsDemo(true); setAfiliado(demoAfiliado); setProductos(demoProductos); setVentas(demoVentas)
             } else { setError('Código de afiliado no encontrado') }
             setIsLoading(false); return
         }
 
         try {
-            const afiliadoData = await getAfiliadoByCodigo(resolvedParams.codigo)
+            const afiliadoData = await getAfiliadoByCodigo(codigo)
             if (!afiliadoData) { setError('Código de afiliado no encontrado'); setIsLoading(false); return }
 
             setAfiliado(afiliadoData as Afiliado)
@@ -72,7 +83,8 @@ export default function PortalAfiliadoPage({ params }: { params: Promise<{ codig
     }
 
     const shareProduct = async (producto: Producto) => {
-        const url = `${window.location.origin}/comprar/${producto.sku}?ref=${resolvedParams.codigo}`
+        // Updated link format
+        const url = `${window.location.origin}/comprar?sku=${producto.sku}&ref=${codigo}`
         const text = `¡Mira este increíble producto! ${producto.nombre} por solo $${producto.precio_retail}`
 
         if (navigator.share) {
@@ -84,7 +96,8 @@ export default function PortalAfiliadoPage({ params }: { params: Promise<{ codig
     }
 
     const copyReferralLink = async () => {
-        const url = `${window.location.origin}/socio/${resolvedParams.codigo}`
+        // Updated link format
+        const url = `${window.location.origin}/socio?codigo=${codigo}`
         await navigator.clipboard.writeText(url)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
@@ -99,8 +112,27 @@ export default function PortalAfiliadoPage({ params }: { params: Promise<{ codig
         </div>
     )
 
+    if (error && !codigo) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-950">
+            <div className="text-center card-glass p-8 max-w-md">
+                <h1 className="text-2xl font-bold text-white mb-2">Portal de Afiliados</h1>
+                <p className="text-gray-400 mb-4">Ingresa tu código de afiliado para acceder.</p>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    // Simple redirect logic or state update
+                    const formData = new FormData(e.currentTarget);
+                    const code = formData.get('code');
+                    if (code) window.location.href = `/socio?codigo=${code}`;
+                }}>
+                    <input name="code" className="input mb-4 w-full" placeholder="Código de Afiliado" />
+                    <button type="submit" className="btn btn-primary w-full">Ingresar</button>
+                </form>
+            </div>
+        </div>
+    )
+
     if (error) return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gray-950">
             <div className="text-center card-glass p-8 max-w-md">
                 <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ExternalLink className="w-8 h-8 text-red-400" />
@@ -227,5 +259,13 @@ export default function PortalAfiliadoPage({ params }: { params: Promise<{ codig
                 © 2026 NEXUS TECH-ADMIN • Portal de Afiliados
             </footer>
         </div>
+    )
+}
+
+export default function PortalAfiliadoPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <PortalAfiliadoContent />
+        </Suspense>
     )
 }

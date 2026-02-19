@@ -526,29 +526,27 @@ export const procesarMensajeEntrante = functions.firestore
 
             // 5. ENVIAR RESPUESTA A LA PLATAFORMA (Output)
             // Para integración real, descomenta y configura el Token de Acceso
-            /*
             try {
                 const platform = payload.plataforma;
                 const recipientId = payload.sender_id;
-                
+
                 if (platform === 'whatsapp') {
                     // Llamada a WhatsApp API
-                    // await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_ID}/messages`, {
-                    //     messaging_product: "whatsapp",
-                    //     to: recipientId,
-                    //     text: { body: respuestaIA }
-                    // }, { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` } });
+                    await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_ID}/messages`, {
+                        messaging_product: "whatsapp",
+                        to: recipientId,
+                        text: { body: respuestaIA }
+                    }, { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` } });
                 } else if (platform === 'facebook' || platform === 'instagram') {
                     // Llamada a Messenger/IG API
-                    // await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.META_ACCESS_TOKEN}`, {
-                    //     recipient: { id: recipientId },
-                    //     message: { text: respuestaIA }
-                    // });
+                    await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.META_ACCESS_TOKEN}`, {
+                        recipient: { id: recipientId },
+                        message: { text: respuestaIA }
+                    });
                 }
             } catch (err) {
                 console.error('Error enviando mensaje a plataforma:', err);
             }
-            */
             console.log(`>>> [SIMULACIÓN] Respuesta enviada a ${payload.plataforma} (${payload.sender_id}): ${respuestaIA}`);
 
             // Marcar mensaje entrante como procesado

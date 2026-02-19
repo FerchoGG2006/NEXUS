@@ -226,34 +226,78 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                             <button
                                 className="btn btn--primary w-full"
                                 onClick={async () => {
-                                    setIsThinking(true)
-                                    addLog('💳 Iniciando transacción simulada...')
+                                    setIsThinking(true);
+                                    addLog('💳 Iniciando transacción simulada...');
                                     try {
                                         const res = await fetch('http://127.0.0.1:5001/nexus-autosales/us-central1/webhookPagoSimulado', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({
-                                                sku: selectedProduct.id, // Usamos ID como SKU en demo
+                                                sku: selectedProduct.id, // Using ID as SKU in demo
                                                 cliente_id: 'SIM_USER_' + Date.now(),
                                                 cantidad: 1,
-                                                datos_envio: { ciudad: 'Lima Central' }
+                                                datos_envio: { ciudad: 'Lima Central' } // Defaulting to Lima for simulation
                                             })
-                                        })
-                                        const data = await res.json()
+                                        });
+                                        const data = await res.json();
                                         if (data.success) {
-                                            addLog('✅ Pago Aprobado. Orden: ' + data.order_id)
-                                            addLog('🚚 Dispatch auto-asignado.')
+                                            addLog('✅ Pago Aprobado. Orden: ' + data.order_id);
+                                            addLog('🚚 Dispatch auto-asignado.');
                                         } else {
-                                            addLog('❌ Error pago: ' + data.error)
+                                            addLog('❌ Error pago: ' + data.error);
                                         }
                                     } catch (e: any) {
-                                        addLog('❌ Error conexión: ' + e.message)
+                                        addLog('❌ Error conexión: ' + e.message);
                                     }
-                                    setIsThinking(false)
+                                    setIsThinking(false);
                                 }}
                                 disabled={isThinking}
                             >
-                                {isThinking ? 'Procesando...' : 'Confirmar Pago (' + formatPrice(selectedProduct.price) + ')'}
+                                {isThinking ? 'Procesando...' : `Confirmar Pago (${formatPrice(selectedProduct.price)})`}
+                            </button>
+
+                            <div className="my-3 flex items-center gap-2">
+                                <div className="h-px bg-white/10 flex-1"></div>
+                                <span className="text-xs text-gray-500 uppercase">O Pagar con Pasarela</span>
+                                <div className="h-px bg-white/10 flex-1"></div>
+                            </div>
+
+                            <button
+                                className="btn bg-[#635bff] hover:bg-[#544ee0] text-white w-full flex items-center justify-center gap-2"
+                                onClick={async () => {
+                                    setIsThinking(true);
+                                    addLog('🔗 Generando Link de Stripe...');
+                                    try {
+                                        const res = await fetch('http://127.0.0.1:5001/nexus-autosales/us-central1/createStripeSession', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                items: [{
+                                                    nombre: selectedProduct.name,
+                                                    sku: selectedProduct.id,
+                                                    precio_unitario: selectedProduct.price,
+                                                    cantidad: 1
+                                                }],
+                                                cliente_id: 'SIM_' + Date.now(),
+                                                customer_email: 'cliente@demo.com'
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (data.url) {
+                                            addLog('✅ Link Generado. Redirigiendo...');
+                                            window.open(data.url, '_blank');
+                                        } else {
+                                            addLog('❌ Error Stripe: ' + (data.error || 'Desconocido'));
+                                        }
+                                    } catch (e: any) {
+                                        addLog('❌ Error conexión: ' + e.message);
+                                    }
+                                    setIsThinking(false);
+                                }}
+                                disabled={isThinking}
+                            >
+                                <span>Pagar con Stripe</span>
+                                <svg viewBox="0 0 32 32" className="w-4 h-4 fill-current"><path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm5.2 22.8c-3.8 1.6-8.6-.2-9.4-4.6-.2-1.2.6-2.2 1.8-2.2h.2c1 .2 1.6 1.2 1.8 2.2.4 2.4 3.4 3.2 5.2 2.4.6-.2 1.2-.8 1.2-1.6 0-1-.8-1.6-3.8-2.6-4.6-1.4-6-3.8-6-6 0-2.8 2.2-4.8 5.6-5.4 3.6-.6 7.6 1 8.4 4.2.2 1-.6 2-1.6 2h-.2c-1-.2-1.6-1-1.8-1.8-.4-1.8-2.8-2.2-4.4-1.8-.8.2-1.2.8-1.2 1.4 0 .8.8 1.4 3.4 2.4 4.8 1.6 6.4 3.8 6.4 6.2.2 3.2-2.2 5-5.6 5.8z" /></svg>
                             </button>
 
                             <button

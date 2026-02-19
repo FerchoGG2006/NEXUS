@@ -45,13 +45,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runReengagementCampaign = exports.webhookPagoSimulado = exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
+exports.stripeWebhook = exports.createStripeSession = exports.runReengagementCampaign = exports.webhookPagoSimulado = exports.getEstadisticasIA = exports.notificarVentaCerrada = exports.procesarMensajeManual = exports.procesarMensajeEntrante = exports.webhookMercadoLibre = exports.webhookMeta = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const openai_1 = __importDefault(require("openai"));
 const generative_ai_1 = require("@google/generative-ai");
 const cors_1 = __importDefault(require("cors"));
 const axios_1 = __importDefault(require("axios"));
+const factory_1 = require("./logistics/factory");
+const auth_1 = require("./middleware/auth");
 // Inicializar Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
@@ -506,27 +508,29 @@ exports.procesarMensajeEntrante = functions.firestore
     }
 });
 // Mantener endpoint HTTP para pruebas manuales desde Postman/Frontend Simulator
+// Mantener endpoint HTTP para pruebas manuales desde Postman/Frontend Simulator
 exports.procesarMensajeManual = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        // Envolver lógica de simulador web
-        // Simplemente guarda en 'mensajes_entrantes' y deja que el trigger haga el trabajo
-        try {
-            const { mensaje, cliente_id, plataforma, image_url } = req.body;
-            await db.collection('mensajes_entrantes').add({
-                plataforma: plataforma || 'web',
-                texto: mensaje,
-                tipo: image_url ? 'imagen' : 'texto',
-                url: image_url,
-                sender_id: cliente_id || 'web-user',
-                sender_name: 'Usuario Web',
-                timestamp: new Date().toISOString(),
-                procesado: false
-            });
-            res.json({ success: true, message: 'Mensaje encolado para IA' });
-        }
-        catch (e) {
-            res.status(500).json({ error: e instanceof Error ? e.message : 'Error desconocido' });
-        }
+        // Auth Middleware: Proteger simulación manual
+        await (0, auth_1.validateFirebaseIdToken)(req, res, async () => {
+            try {
+                const { mensaje, cliente_id, plataforma, image_url } = req.body;
+                await db.collection('mensajes_entrantes').add({
+                    plataforma: plataforma || 'web',
+                    texto: mensaje,
+                    tipo: image_url ? 'imagen' : 'texto',
+                    url: image_url,
+                    sender_id: cliente_id || 'web-user',
+                    sender_name: 'Usuario Web',
+                    timestamp: new Date().toISOString(),
+                    procesado: false
+                });
+                res.json({ success: true, message: 'Mensaje encolado para IA' });
+            }
+            catch (e) {
+                res.status(500).json({ error: e instanceof Error ? e.message : 'Error desconocido' });
+            }
+        });
     });
 });
 // ============================================
@@ -624,24 +628,27 @@ async function createOrder(payload) {
                 console.log(`[AFILIADOS] Comisión de $${comisionGenerada} generada para ${afiData.nombre} (Ref: ${payload.referral_code})`);
             }
         }
-        // 4. LOGÍSTICA AUTOMATIZADA (AUTO-DISPATCH)
+        // 4. LOGÍSTICA AUTOMATIZADA (MODULAR ADAPTER)
+        const logisticsProvider = factory_1.LogisticsFactory.getProvider();
         let despachoEstado = 'pendiente';
         let courierAsignado = null;
         let gastosEnvio = 0;
+        let trackingNumber = '';
         if ((_a = payload.datos_envio) === null || _a === void 0 ? void 0 : _a.ciudad) {
-            const ciudad = payload.datos_envio.ciudad.toLowerCase();
-            // Simulación de Asignación Inteligente
-            if (ciudad.includes('lima') || ciudad.includes('callao')) {
-                courierAsignado = 'FLOTA_PROPIA_MOTO_01';
-                despachoEstado = 'preparando'; // Auto-aprobar para zona urbana
-                gastosEnvio = 10000;
+            try {
+                // Obtener cotización y generar guía
+                const shipment = await logisticsProvider.createShipment(Object.assign(Object.assign({}, payload), { id: orderRef.id }));
+                courierAsignado = shipment.courier_name;
+                gastosEnvio = shipment.cost;
+                trackingNumber = shipment.tracking_number;
+                despachoEstado = shipment.estimated_days <= 1 ? 'preparando' : 'pendiente';
+                console.log(`[DISPATCH] Asignado a ${courierAsignado} (Tracking: ${trackingNumber})`);
             }
-            else {
-                courierAsignado = 'SHALOM_CARGO';
-                despachoEstado = 'pendiente'; // Requiere validación manual para provincia
-                gastosEnvio = 25000;
+            catch (logisticsError) {
+                console.error('Error en logística:', logisticsError);
+                // Fallback a manual
+                despachoEstado = 'error_logistica';
             }
-            console.log(`[DISPATCH] Asignado a ${courierAsignado} (Zona: ${ciudad})`);
         }
         // 5. Crear Pedido
         t.set(orderRef, {
@@ -662,6 +669,7 @@ async function createOrder(payload) {
             afiliado_id: affiliateId,
             comision_afiliado: comisionGenerada,
             courier_asignado: courierAsignado,
+            tracking_number: trackingNumber,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         });
@@ -773,5 +781,48 @@ exports.runReengagementCampaign = functions.https.onRequest(async (req, res) => 
         console.error('Error en campaña:', error);
         res.status(500).json({ error: error.message });
     }
+});
+// ============================================
+// 6. STRIPE INTEGRATION (REAL PAYMENTS)
+// ============================================
+const stripe_1 = require("./stripe");
+exports.createStripeSession = functions.https.onRequest((req, res) => {
+    // 1. CORS
+    corsHandler(req, res, async () => {
+        // 2. Auth Middleware
+        await (0, auth_1.validateFirebaseIdToken)(req, res, async () => {
+            try {
+                const { items, customer_email, cliente_id } = req.body;
+                // 1. Crear Orden "Pendiente" en Firestore primero (para tener ID)
+                // Opcional: Podríamos crearla después, pero Stripe necesita un client_reference_id
+                // Vamos a reutilizar logic de createOrder pero en estado "iniciado"
+                const orderRef = db.collection('pedidos_despacho').doc();
+                await orderRef.set({
+                    id: orderRef.id,
+                    cliente_id: cliente_id || 'GUEST',
+                    estado: 'creado_pendiente_pago',
+                    created_at: new Date().toISOString(),
+                    items // Guardar items por si acaso
+                });
+                // 2. Crear Sesión de Stripe
+                const session = await (0, stripe_1.createCheckoutSession)({
+                    orderId: orderRef.id, // ID De la orden en Firestore
+                    items: items, // [{ nombre, precio_unitario, cantidad, sku }]
+                    customer_email,
+                    success_url: 'http://localhost:3000/dashboard?payment=success&order_id=' + orderRef.id, // En prod usar variable de entorno
+                    cancel_url: 'http://localhost:3000/dashboard?payment=cancel'
+                });
+                res.json({ url: session.url });
+            }
+            catch (error) {
+                console.error('Error creating Stripe session:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+    });
+});
+exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+    // No usamos corsHandler porque Stripe llama directamente
+    await (0, stripe_1.handleStripeWebhook)(req, res);
 });
 //# sourceMappingURL=index.js.map

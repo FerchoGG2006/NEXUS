@@ -15,17 +15,13 @@ interface ClienteLead {
     ultima_compra: string
 }
 
-const demoLeads: ClienteLead[] = [
-    { id: '1', nombre: 'Juan Pérez', telefono: '+57 300 111 2233', modelo_celular_actual: 'iPhone 13', origen: 'TikTok', estado_conversion: 'caliente', ultima_compra: '2023-10-05T10:00:00Z' },
-    { id: '2', nombre: 'Ana García', telefono: '+57 311 444 5566', modelo_celular_actual: 'iPhone 15 Pro', origen: 'Instagram', estado_conversion: 'comprador', ultima_compra: '2023-08-15T10:00:00Z' },
-    { id: '3', nombre: 'Roberto Soto', telefono: '+57 320 777 8899', modelo_celular_actual: 'iPhone 12', origen: 'Feria Presencial', estado_conversion: 'frio', ultima_compra: '2023-05-20T10:00:00Z' },
-]
+
 
 export default function MarketingPage() {
     const [leads, setLeads] = useState<ClienteLead[]>([])
     const [inactivos, setInactivos] = useState<ClienteLead[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isDemo, setIsDemo] = useState(false)
+
 
     useEffect(() => {
         loadData()
@@ -34,9 +30,6 @@ export default function MarketingPage() {
     const loadData = async () => {
         setIsLoading(true)
         if (!isFirebaseConfigured()) {
-            setIsDemo(true)
-            setLeads(demoLeads)
-            setInactivos(demoLeads.filter(l => new Date(l.ultima_compra) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)))
             setIsLoading(false)
             return
         }
@@ -50,8 +43,6 @@ export default function MarketingPage() {
             setInactivos(inactivosData as ClienteLead[])
         } catch (error) {
             console.error(error)
-            setIsDemo(true)
-            setLeads(demoLeads)
         } finally {
             setIsLoading(false)
         }

@@ -19,15 +19,12 @@ interface ClienteB2B {
     activo: boolean
 }
 
-const demoClientes: ClienteB2B[] = [
-    { id: '1', razon_social: 'TechStore S.A.', ruc: '20123456789', contacto_nombre: 'Juan Pérez', contacto_email: 'juan@techstore.com', contacto_telefono: '+123456789', direccion: 'Av. Principal 123', linea_credito: 5000, saldo_pendiente: 1200, activo: true },
-    { id: '2', razon_social: 'Gadgets Plus', ruc: '20987654321', contacto_nombre: 'María López', contacto_email: 'maria@gadgets.com', contacto_telefono: '+987654321', direccion: 'Calle Comercio 456', linea_credito: 10000, saldo_pendiente: 0, activo: true },
-]
+
 
 export default function ClientesB2BPage() {
     const [clientes, setClientes] = useState<ClienteB2B[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isDemo, setIsDemo] = useState(false)
+
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingCliente, setEditingCliente] = useState<ClienteB2B | null>(null)
     const [formError, setFormError] = useState<string | null>(null)
@@ -41,12 +38,11 @@ export default function ClientesB2BPage() {
 
     const loadClientes = async () => {
         setIsLoading(true)
-        if (!isFirebaseConfigured()) { setIsDemo(true); setClientes(demoClientes); setIsLoading(false); return }
+        if (!isFirebaseConfigured()) { setIsLoading(false); return }
         try {
             const data = await getClientesB2B()
-            if (data.length > 0) { setClientes(data as ClienteB2B[]) }
-            else { setIsDemo(true); setClientes(demoClientes) }
-        } catch { setIsDemo(true); setClientes(demoClientes) }
+            setClientes(data as ClienteB2B[])
+        } catch (error) { console.error(error) }
         finally { setIsLoading(false) }
     }
 
@@ -71,11 +67,7 @@ export default function ClientesB2BPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setFormError(null); setIsSaving(true)
         try {
-            if (isDemo) {
-                if (editingCliente) { setClientes(prev => prev.map(c => c.id === editingCliente.id ? { ...c, ...formData } as ClienteB2B : c)) }
-                else { setClientes(prev => [...prev, { ...formData, id: `temp-${Date.now()}`, saldo_pendiente: 0 } as ClienteB2B]) }
-                setIsModalOpen(false); return
-            }
+
             if (editingCliente) { await update(COLLECTIONS.CLIENTES_B2B, editingCliente.id, formData) }
             else { await create(COLLECTIONS.CLIENTES_B2B, { ...formData, saldo_pendiente: 0 }) }
             await loadClientes(); setIsModalOpen(false)
@@ -85,7 +77,7 @@ export default function ClientesB2BPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Eliminar cliente?')) return
-        if (isDemo) { setClientes(prev => prev.filter(c => c.id !== id)); return }
+
         await remove(COLLECTIONS.CLIENTES_B2B, id)
         await loadClientes()
     }
@@ -179,12 +171,7 @@ export default function ClientesB2BPage() {
                 </button>
             </header>
 
-            {isDemo && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3 text-blue-300">
-                    <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400"></div>
-                    <span><strong>Modo Simulación.</strong> Base de datos B2B temporal.</span>
-                </div>
-            )}
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="glass-panel p-6 rounded-2xl flex items-center gap-4 relative overflow-hidden group">

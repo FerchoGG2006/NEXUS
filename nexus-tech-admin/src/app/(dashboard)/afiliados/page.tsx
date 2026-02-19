@@ -18,17 +18,14 @@ interface Afiliado {
     nivel: string
 }
 
-const demoAfiliados: Afiliado[] = [
-    { id: '1', nombre: 'Carlos Martinez', email: 'carlos@email.com', telefono: '+1234567890', codigo_referido: 'CARLOS2024', comision_porcentaje: 10, balance_acumulado: 450.00, balance_pagado: 200.00, activo: true, nivel: 'Plata' },
-    { id: '2', nombre: 'Ana Rodriguez', email: 'ana@email.com', telefono: '+0987654321', codigo_referido: 'ANA2024', comision_porcentaje: 12, balance_acumulado: 890.50, balance_pagado: 500.00, activo: true, nivel: 'Oro' },
-]
+
 
 const niveles = ['Bronce', 'Plata', 'Oro', 'Platino', 'Diamante']
 
 export default function AfiliadosPage() {
     const [afiliados, setAfiliados] = useState<Afiliado[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isDemo, setIsDemo] = useState(false)
+
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingAfiliado, setEditingAfiliado] = useState<Afiliado | null>(null)
     const [formError, setFormError] = useState<string | null>(null)
@@ -45,17 +42,15 @@ export default function AfiliadosPage() {
     const loadAfiliados = async () => {
         setIsLoading(true)
         if (!isFirebaseConfigured()) {
-            setIsDemo(true)
-            setAfiliados(demoAfiliados)
             setIsLoading(false)
             return
         }
         try {
             const data = await getAfiliados()
-            if (data.length > 0) { setAfiliados(data as Afiliado[]) }
-            else { setIsDemo(true); setAfiliados(demoAfiliados) }
-        } catch { setIsDemo(true); setAfiliados(demoAfiliados) }
-        finally { setIsLoading(false) }
+            setAfiliados(data as Afiliado[])
+        } catch (error) {
+            console.error(error)
+        } finally { setIsLoading(false) }
     }
 
     const openModal = (afiliado?: Afiliado) => {
@@ -86,15 +81,7 @@ export default function AfiliadosPage() {
         const dataToSave = { ...formData, codigo_referido: codigo }
 
         try {
-            if (isDemo) {
-                if (editingAfiliado) {
-                    setAfiliados(prev => prev.map(a => a.id === editingAfiliado.id ? { ...a, ...dataToSave } : a))
-                } else {
-                    setAfiliados(prev => [...prev, { ...dataToSave, id: `temp-${Date.now()}`, balance_acumulado: 0, balance_pagado: 0 } as Afiliado])
-                }
-                setIsModalOpen(false)
-                return
-            }
+
 
             if (editingAfiliado) {
                 await update(COLLECTIONS.AFILIADOS, editingAfiliado.id, dataToSave)
@@ -112,7 +99,7 @@ export default function AfiliadosPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Eliminar este afiliado?')) return
-        if (isDemo) { setAfiliados(prev => prev.filter(a => a.id !== id)); return }
+
         await remove(COLLECTIONS.AFILIADOS, id)
         await loadAfiliados()
     }
@@ -213,12 +200,7 @@ export default function AfiliadosPage() {
                 </button>
             </header>
 
-            {isDemo && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3 text-blue-300">
-                    <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400"></div>
-                    <span><strong>Modo Demo Activo.</strong> Visualizando datos de ejemplo.</span>
-                </div>
-            )}
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="glass-panel p-6 rounded-2xl flex items-center gap-4 relative overflow-hidden group">

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { isFirebaseConfigured } from '@/lib/firebase'
 import { VentasService } from '@/services/ventasService'
@@ -12,22 +14,14 @@ import { formatPrice } from '@/lib/currency'
 import { VentasStats } from '@/components/ventas/VentasStats'
 import { VentaModal } from '@/components/ventas/VentaModal'
 
-const demoVentas: Venta[] = [
-    { id: '1', numero_venta: 'NTX-20260126-00001', producto_id: '1', afiliado_id: null, tipo_venta: 'Retail', cantidad: 2, precio_unitario: 240000, subtotal: 480000, descuento: 0, total_venta: 480000, costo_total: 200000, comision_afiliado: 0, gastos_operativos: 24000, ganancia_neta: 256000, estado: 'Completada', fecha: new Date().toISOString() },
-    { id: '2', numero_venta: 'NTX-20260126-00002', producto_id: '2', afiliado_id: '1', tipo_venta: 'Afiliado', cantidad: 5, precio_unitario: 120000, subtotal: 600000, descuento: 0, total_venta: 600000, costo_total: 300000, comision_afiliado: 60000, gastos_operativos: 30000, ganancia_neta: 210000, estado: 'Completada', fecha: new Date().toISOString() },
-]
 
-const demoProductos: Producto[] = [
-    { id: '1', nombre: 'Audífonos Bluetooth Pro', precio_retail: 240000, precio_b2b: 180000, costo_compra: 100000 },
-    { id: '2', nombre: 'Cargador Inalámbrico', precio_retail: 120000, precio_b2b: 80000, costo_compra: 60000 },
-]
 
 export default function VentasPage() {
     const [ventas, setVentas] = useState<Venta[]>([])
     const [productos, setProductos] = useState<Producto[]>([])
     const [afiliados, setAfiliados] = useState<Afiliado[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isDemo, setIsDemo] = useState(false)
+
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
@@ -43,7 +37,6 @@ export default function VentasPage() {
     const loadData = async () => {
         setIsLoading(true)
         if (!isFirebaseConfigured()) {
-            setIsDemo(true); setVentas(demoVentas); setProductos(demoProductos)
             setIsLoading(false); return
         }
         try {
@@ -55,18 +48,14 @@ export default function VentasPage() {
 
             const { data: ventasData, lastDoc: lastVisible } = ventasResponse
 
-            if (ventasData.length > 0 || productosData.length > 0) {
-                setVentas(ventasData)
-                setLastDoc(lastVisible)
-                setHasMore(!!lastVisible)
-                setProductos(productosData)
-                setAfiliados(afiliadosData)
-            } else {
-                // Fallback to demo if empty
-                setIsDemo(true); setVentas(demoVentas); setProductos(demoProductos)
-            }
-        } catch { setIsDemo(true); setVentas(demoVentas); setProductos(demoProductos) }
-        finally { setIsLoading(false) }
+            setVentas(ventasData)
+            setLastDoc(lastVisible)
+            setHasMore(!!lastVisible)
+            setProductos(productosData)
+            setAfiliados(afiliadosData)
+        } catch (error) {
+            console.error(error)
+        } finally { setIsLoading(false) }
     }
 
     const handleCreateVenta = async (ventaData: any) => {
@@ -90,13 +79,7 @@ export default function VentasPage() {
                 fecha: new Date().toISOString()
             }
 
-            if (isDemo) {
-                // @ts-ignore
-                setVentas(prev => [{ ...nuevaVenta, id: `temp-${Date.now()}` } as Venta, ...prev])
-                setIsModalOpen(false)
-                setIsSaving(false)
-                return
-            }
+
 
             await VentasService.create(nuevaVenta)
             await loadData()
@@ -205,12 +188,7 @@ export default function VentasPage() {
                 </button>
             </header>
 
-            {isDemo && (
-                <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl flex items-center gap-3 text-blue-300">
-                    <AlertTriangle size={20} />
-                    <span><strong>Modo Simulación.</strong> Los datos son temporales.</span>
-                </div>
-            )}
+
 
             <VentasStats
                 totalVentas={ventas.length}
@@ -221,7 +199,7 @@ export default function VentasPage() {
             <div className="glass-panel p-6 rounded-2xl">
                 <DataTable data={ventas} columns={columns} searchKeys={['numero_venta']} isLoading={isLoading} emptyMessage="No hay registros en el blockchain de ventas." />
 
-                {hasMore && !isLoading && !isDemo && (
+                {hasMore && !isLoading && (
                     <div className="mt-4 flex justify-center">
                         <button
                             onClick={loadMore}

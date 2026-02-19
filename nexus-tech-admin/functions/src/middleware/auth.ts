@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
+// Removed unused functions import
 
 // Extender la interfaz Request para incluir el usuario decodificado
 declare module 'express-serve-static-core' {
@@ -8,10 +8,12 @@ declare module 'express-serve-static-core' {
     }
 }
 
+import { Request, Response } from 'express';
+
 /**
  * Middleware para validar el Bearer Token de Firebase Auth
  */
-export const validateFirebaseIdToken = async (req: functions.https.Request, res: functions.Response, next: () => void) => {
+export const validateFirebaseIdToken = async (req: Request, res: Response, next: () => void) => {
     // 1. Verificar presencia del header Authorization
     if ((!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) &&
         !(req.cookies && req.cookies.__session)) {

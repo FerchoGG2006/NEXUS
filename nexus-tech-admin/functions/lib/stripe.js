@@ -44,7 +44,7 @@ const db = admin.firestore();
 // Inicializar Stripe con la clave secreta (desde variables de entorno)
 // Nota: En desarrollo local, se puede usar una clave hardcodeada si no se configuran env vars, pero NO en producción.
 const stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY || 'sk_test_PLACEHOLDER', {
-    apiVersion: '2023-10-16', // Usar una versión reciente
+    apiVersion: '2023-10-16', // Cast to any to avoid version mismatch errors
 });
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_PLACEHOLDER';
 /**

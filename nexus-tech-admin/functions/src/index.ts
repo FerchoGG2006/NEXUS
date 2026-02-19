@@ -8,7 +8,7 @@
  * 3. Sender (API) -> Envía respuesta a la plataforma correspondiente
  */
 
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';

@@ -11,14 +11,19 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Verificar si Firebase está configurado
+// Verificar si Firebase está configurado correctamente
 export const isFirebaseConfigured = () => {
-    return (
-        firebaseConfig.apiKey &&
-        firebaseConfig.apiKey !== 'your_firebase_api_key' &&
-        firebaseConfig.projectId &&
-        firebaseConfig.projectId !== 'your_project_id'
-    )
+    const key = firebaseConfig.apiKey;
+    const project = firebaseConfig.projectId;
+
+    return !!(
+        key &&
+        key.length > 20 &&
+        !key.includes('your_') &&
+        project &&
+        !project.includes('your_') &&
+        project !== 'nexus-autosales' // Opcional: Forzar modo demo si es el ID por defecto pero no hay keys reales
+    );
 }
 
 // Inicializar Firebase solo si está configurado

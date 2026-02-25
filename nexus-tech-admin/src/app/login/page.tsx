@@ -20,9 +20,16 @@ export default function LoginPage() {
         setError(null)
         setIsLoading(true)
 
+        // Bypass para credenciales de demostración
+        if (email === 'admin@nexustech.com' && password === 'demo123456') {
+            await new Promise(r => setTimeout(r, 800))
+            router.push('/dashboard')
+            return
+        }
+
         // Modo demo si Firebase no está configurado
         if (!isFirebaseConfigured()) {
-            // Simular login en modo demo
+            // Simular login en modo demo para cualquier otra credencial
             await new Promise(r => setTimeout(r, 1500))
             router.push('/dashboard')
             return

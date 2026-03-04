@@ -1,95 +1,105 @@
 # NEXUS AUTO-SALES 🚀
+## El Futuro del Comercio Autónomo Impulsado por IA
 
-Sistema de **Venta Autónoma Proactiva** potenciado por IA. Tu negocio vende solo mientras tú duermes.
+NEXUS AUTO-SALES es un sistema de **Ventas Autónomas Proactivas** de última generación, diseñado para gestionar todo el ciclo de vida de una venta —desde la captación inicial de clientes potenciales hasta la verificación de pagos y logística— sin intervención humana. Aprovechando el poder de los Modelos de Lenguaje de Gran Escala (LLM) y una arquitectura robusta en la nube, NEXUS permite que las empresas operen 24/7, convirtiendo conversaciones en ventas mientras tú te enfocas en crecer.
 
-## 🎯 Cómo Funciona
+---
 
-```
-1. CARGA → Subes el producto con foto y precio
-2. IA EN ACCIÓN → El agente publica y chatea con clientes
-3. NOTIFICACIÓN → "Venta cerrada. Pago verificado. Dirección: Calle X"
-4. DESPACHO → Imprimes la etiqueta y entregas el paquete
-```
+## 🌟 Visión e Impacto
+En la economía digital acelerada de hoy, la velocidad y la personalización son claves para la conversión. NEXUS elimina la fricción de los procesos de venta manuales proporcionando:
+- **Compromiso Instantáneo**: Respuestas sin latencia a las consultas de los clientes en múltiples plataformas.
+- **Persuasión Basada en Datos**: IA que entiende la intención del cliente y utiliza disparadores psicológicos para cerrar ventas.
+- **Automatización Sin Fisuras**: Desde el primer mensaje hasta la etiqueta de envío, todo el flujo está automatizado.
+- **Información Accionable**: Un dashboard premium que ofrece visibilidad en tiempo real de tu fuerza de ventas autónoma.
 
-## 🏗️ Arquitectura
+---
 
-### Frontend (Next.js 14 + CSS Puro)
-- **Dashboard**: Métricas en tiempo real
-- **Conversaciones IA**: Monitor de chats automatizados
-- **Despachos**: Gestión de envíos
-- **Configuración IA**: Personalización del agente
+## 🎯 Funcionalidad Principal: El Bucle Autónomo
 
-### Backend (Firebase)
-- **Firestore**: Base de datos en tiempo real
-- **Cloud Functions**: Lógica del Agente IA
-- **Storage**: Comprobantes de pago
-- **Auth**: Autenticación segura
-
-### IA (OpenAI GPT-4o)
-- Respuestas naturales y persuasivas
-- Cierre automático de ventas
-- Recolección de datos de envío
-- Verificación de pagos
-
-## 📦 Estructura de Firestore
-
-```
-productos/
-├── nombre, descripcion_ia
-├── costo_compra, precio_retail
-├── stock, link_pago_base
-└── imagenes[]
-
-conversaciones/
-├── cliente_id, cliente_nombre, plataforma
-├── producto_interes_id, estado
-├── historial_chat[]
-├── datos_envio{}
-└── pago_confirmado
-
-pedidos_despacho/
-├── cliente_datos{}
-├── producto_id, cantidad, total
-├── ganancia_neta
-├── tracking_number
-└── estado
-
-configuracion_ia/
-├── nombre_tienda, tono_vendedor
-├── prompt_sistema
-├── mensajes_predefinidos
-├── horario_atencion
-└── openai_api_key
+```mermaid
+graph TD
+    A[Carga de Producto] --> B[Generación de Estrategia por IA]
+    B --> C[Despliegue Omnicanal]
+    C --> D[Chat de Comprometimiento Autónomo]
+    D --> E{¿Señal de Interés?}
+    E -->|No| F[Seguimiento Persistente]
+    E -->|Sí| G[Recolección de Datos y Upselling]
+    G --> H[Generación de Pago]
+    H --> I[Cumplimiento Automatizado]
+    I --> J[Analítica de Éxito]
 ```
 
-## 🛠️ Instalación
+1.  **ESTRATEGIZAR**: Sube un producto; nuestra IA genera guiones de venta optimizados y descripciones de marketing.
+2.  **CONECTAR**: El agente chatea proactivamente con los clientes en WhatsApp, Messenger y más.
+3.  **CERRAR**: El sistema maneja objeciones, verifica pagos y recolecta datos de envío.
+4.  **ENTREGAR**: Se sincroniza con proveedores logísticos para preparar los envíos instantáneamente.
 
-### 1. Clonar y Configurar
+---
 
-```bash
-cd nexus-tech-admin
-npm install
-```
+## 🏗️ Arquitectura Técnica
 
-### 2. Variables de Entorno
+### 💻 Frontend: Next.js 14+ / 15
+*   **Espacio de Trabajo Moderno**: Un panel de control de alto rendimiento construido con React 19 y Next.js.
+*   **Monitoreo en Tiempo Real**: Feed en vivo de las conversaciones de IA activas y métricas de ventas.
+*   **Diseño CSS Puro**: Optimizado para la velocidad y personalización total de marca sin el peso de frameworks pesados.
+*   **Analítica Avanzada**: Gráficos interactivos potenciados por `recharts`.
 
-Crea `.env.local`:
+### ⚙️ Backend: Ecosistema Firebase
+*   **Firestore**: Base de datos de documentos en tiempo real para la gestión de estados de alta concurrencia.
+*   **Cloud Functions**: El "Cerebro" del sistema, gestionando webhooks, lógica de IA e integraciones externas.
+*   **Autenticación**: Seguridad de grado industrial para acceso administrativo y de socios.
+*   **Almacenamiento (Storage)**: Manejo seguro de comprobantes de pago y activos de productos.
+
+### 🧠 Capa de Inteligencia: OpenAI GPT-4o & Google Gemini
+*   **Soporte Multimodelo**: Redundancia y lógica especializada utilizando los mejores LLM del mercado.
+*   **Prompteado Dinámico**: Instrucciones sensibles al contexto que se adaptan a los tonos específicos de la tienda y los productos.
+*   **Verificación Automatizada**: Verificación impulsada por IA de capturas de pantalla de transferencias bancarias y comprobantes de pago.
+
+---
+
+## 📂 Módulos del Sistema
+
+| Icono | Módulo | Descripción |
+| :--- | :--- | :--- |
+| 📊 | **Dashboard** | Control de misión con ROI en tiempo real, volumen de ventas y seguimiento de leads. |
+| 💬 | **Monitor de IA** | Supervisa e interviene (si es necesario) en conversaciones autónomas en vivo. |
+| 📦 | **Gestor de Inventario** | Gestiona productos con asistencia de IA para descripciones y generación visual. |
+| 🚛 | **Hub de Logística** | Rastrea envíos, gestiona etiquetas e intégrate con transportistas locales. |
+| ⚙ | **Configurador de IA** | Ajusta la personalidad, el tono y las instrucciones del sistema de tu IA. |
+| 📈 | **IA de Marketing** | (Próximamente) Automatiza campañas publicitarias y publicaciones en redes sociales. |
+
+---
+
+## 🛠️ Configuración e Instalación
+
+### 1. Configuración del Entorno
+Asegúrate de tener las siguientes claves listas en tu `.env.local`:
 
 ```env
-# Firebase
+# Configuración de Firebase
 NEXT_PUBLIC_FIREBASE_API_KEY=tu_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
 
-# Firebase Admin (para Cloud Functions)
-FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+# Claves de Proveedores de IA
+OPENAI_API_KEY=sk-...
+GOOGLE_GENERATIVE_AI_API_KEY=...
 ```
 
-### 3. Desplegar Cloud Functions
+### 2. Flujo de Trabajo de Desarrollo
+```bash
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/nexus-tech-admin.git
 
+# Instalar dependencias
+npm install
+
+# Iniciar el servidor de desarrollo
+npm run dev
+```
+
+### 3. Desplegando el Backend
 ```bash
 cd functions
 npm install
@@ -97,142 +107,23 @@ npm run build
 firebase deploy --only functions
 ```
 
-### 4. Ejecutar Localmente
+---
 
-```bash
-npm run dev
-```
-
-## 🤖 Configuración del Agente IA
-
-### 1. API Key de OpenAI
-
-1. Ve a [platform.openai.com](https://platform.openai.com)
-2. Crea una API Key
-3. Agrégala en **Configuración IA** → OpenAI API Key
-
-### 2. Personalizar el Prompt
-
-En **Configuración IA**, ajusta:
-
-- **Nombre de la Tienda**: Cómo se presenta el agente
-- **Tono**: Profesional, Amigable o Persuasivo
-- **Prompt del Sistema**: Instrucciones detalladas
-- **Mensajes Predefinidos**: Bienvenida, sin stock, pago recibido
-
-### 3. Integrar Webhooks
-
-#### Facebook Messenger
-1. Crea una App en [developers.facebook.com](https://developers.facebook.com)
-2. Configura el Webhook: `https://us-central1-TU_PROYECTO.cloudfunctions.net/webhookFacebook`
-3. Token de verificación: Configúralo en Firebase
-
-#### WhatsApp Business
-1. Usa la API de WhatsApp Business o servicios como Twilio
-2. Configura el webhook para enviar mensajes a `procesarMensaje`
-
-#### n8n / Make.com
-Para automatizaciones más complejas:
-1. Captura mensajes de cualquier plataforma
-2. Envía POST a `procesarMensaje` con:
-   ```json
-   {
-     "cliente_id": "unique_id",
-     "cliente_nombre": "Nombre",
-     "cliente_telefono": "+57...",
-     "plataforma": "whatsapp",
-     "producto_id": "optional",
-     "mensaje": "Texto del cliente"
-   }
-   ```
-
-## 🔔 Notificaciones
-
-Cuando la IA cierra una venta, puedes recibir alertas por:
-
-- **Email** (configura SendGrid en Cloud Functions)
-- **WhatsApp** (configura Twilio)
-- **Telegram** (agrega un bot)
-- **Push** (usa Firebase Cloud Messaging)
-
-## 📊 Flujo de Venta Automática
-
-```mermaid
-graph LR
-    A[Cliente envía mensaje] --> B[Webhook recibe]
-    B --> C[Cloud Function procesa]
-    C --> D[GPT-4o genera respuesta]
-    D --> E{Cliente interesado?}
-    E -->|Sí| F[Solicita datos envío]
-    F --> G[Envía link de pago]
-    G --> H{Pagó?}
-    H -->|Sí| I[Crea pedido despacho]
-    I --> J[Notifica al admin]
-    J --> K[Admin despacha]
-    H -->|No| L[Seguimiento automático]
-    E -->|No| M[Intenta persuadir]
-```
-
-## 🎨 Diseño CSS Puro
-
-El sistema usa CSS Variables para un diseño consistente:
-
-```css
-:root {
-  --color-primary: #6366f1;
-  --color-success: #22c55e;
-  --color-bg-dark: #0f172a;
-  --radius-xl: 1rem;
-  --space-6: 1.5rem;
-}
-```
-
-Sin Tailwind. Sin frameworks. 100% personalizable.
-
-## 📱 Módulos Disponibles
-
-| Módulo | Descripción |
-|--------|-------------|
-| **Dashboard** | Métricas en tiempo real |
-| **Conversaciones IA** | Monitor de chats automatizados |
-| **Despachos** | Cola de pedidos para enviar |
-| **Productos** | Inventario con descripción IA |
-| **Configuración IA** | Personalizar el agente |
-| **Alertas Stock** | Productos bajo mínimo |
-| **Reportes** | Análisis de ventas |
-
-## 🔒 Seguridad
-
-- Autenticación Firebase
-- Firestore Rules (configura en Firebase Console)
-- API Keys encriptadas
-- HTTPS obligatorio
-
-## 🚀 Despliegue Producción
-
-### Vercel (Frontend)
-
-```bash
-npm run build
-vercel --prod
-```
-
-### Firebase (Cloud Functions)
-
-```bash
-firebase deploy --only functions
-```
-
-## 📈 Próximas Mejoras
-
-- [ ] Integración nativa con Meta Marketing API
-- [ ] Catálogo sincronizado con Marketplace
-- [ ] Generación automática de imágenes con DALL-E
-- [ ] Dashboard analytics avanzado
-- [ ] App móvil para notificaciones
+## 🔒 Seguridad y Fiabilidad
+- **Control de Acceso Basado en Roles (RBAC)**: Permisos detallados para administradores y operadores.
+- **Comunicación Encriptada**: Todos los datos en tránsito y en reposo están asegurados vía la infraestructura de Google Cloud.
+- **Lógica de Failover**: Mecanismos de reintento automatizados para webhooks y procesamiento de pagos.
 
 ---
 
-**Desarrollado con 💜 por tu asistente de IA**
+## 📈 Hoja de Ruta (Roadmap)
+- [x] **v1.0**: Bucle Central de Ventas Autónomas.
+- [ ] **v1.5**: Integración nativa con WhatsApp Cloud API.
+- [ ] **v2.0**: Visuales de productos integrados con DALL-E 3.
+- [ ] **v2.5**: Sincronización automatizada con Marketplaces (FB Marketplace, Mercado Libre).
+- [ ] **v3.0**: Demanda predictiva y reabastecimiento automático de stock.
 
-*Tu negocio nunca duerme. Tu IA tampoco.*
+---
+
+**Desarrollado con 💜 por Antigravity AI**
+*Transformando el comercio a través de la inteligencia autónoma.*

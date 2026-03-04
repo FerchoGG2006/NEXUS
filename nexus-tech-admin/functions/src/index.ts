@@ -76,6 +76,11 @@ async function getOpenAIClient(): Promise<OpenAI> {
     return new OpenAI({ apiKey: config.openai_api_key });
 }
 
+async function getIAConfig() {
+    const configDoc = await db.collection('configuracion_ia').doc('default').get();
+    return configDoc.data() || {};
+}
+
 async function getGeminiResponse(prompt: string, history: ChatMessage[], apiKey: string): Promise<string> {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -172,7 +177,10 @@ export const webhookMeta = functions.https.onRequest((req, res) => {
             const token = req.query['hub.verify_token'];
             const challenge = req.query['hub.challenge'];
 
-            if (mode === 'subscribe' && token === (process.env.META_VERIFY_TOKEN || 'nexus_secure_token')) {
+            const config = await getIAConfig();
+            const verifyToken = config.meta_verify_token || process.env.META_VERIFY_TOKEN || 'nexus_secure_token';
+
+            if (mode === 'subscribe' && token === verifyToken) {
                 res.status(200).send(challenge);
             } else {
                 res.status(403).send('Forbidden');
@@ -525,21 +533,21 @@ export const procesarMensajeEntrante = functions.firestore
             });
 
             // 5. ENVIAR RESPUESTA A LA PLATAFORMA (Output)
-            // Para integración real, descomenta y configura el Token de Acceso
             try {
                 const platform = payload.plataforma;
                 const recipientId = payload.sender_id;
+                const accessToken = config.meta_access_token || process.env.META_ACCESS_TOKEN;
 
-                if (platform === 'whatsapp') {
+                if (platform === 'whatsapp' && accessToken && config.wa_phone_id) {
                     // Llamada a WhatsApp API
-                    await axios.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_ID}/messages`, {
+                    await axios.post(`https://graph.facebook.com/v18.0/${config.wa_phone_id}/messages`, {
                         messaging_product: "whatsapp",
                         to: recipientId,
                         text: { body: respuestaIA }
-                    }, { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` } });
-                } else if (platform === 'facebook' || platform === 'instagram') {
+                    }, { headers: { Authorization: `Bearer ${accessToken}` } });
+                } else if ((platform === 'facebook' || platform === 'instagram') && accessToken) {
                     // Llamada a Messenger/IG API
-                    await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.META_ACCESS_TOKEN}`, {
+                    await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
                         recipient: { id: recipientId },
                         message: { text: respuestaIA }
                     });
@@ -876,6 +884,10 @@ export const runReengagementCampaign = functions.https.onRequest(async (req, res
 
         const results: any[] = [];
 
+        const config = await getIAConfig();
+        const accessToken = config.meta_access_token || process.env.META_ACCESS_TOKEN;
+        const phoneId = config.wa_phone_id;
+
         await Promise.all(leadsQuery.docs.map(async (doc) => {
             const lead = doc.data();
             // Evitar re-enviar si ya fue contactado recientemente (campo custom)
@@ -889,9 +901,21 @@ export const runReengagementCampaign = functions.https.onRequest(async (req, res
                 mensajeNudge = `Hola ${lead.nombre}, vimos que preguntaste por un artículo en Marketplace. Aún tenemos stock disponible. ¿Te gustaría reservarlo?`;
             }
 
-            // [MOCK] Enviar mensaje
-            // Aquí iría la llamada real a Meta API
-            console.log(`>>> [CAMPAÑA] Enviando Nudge a ${lead.nombre} (${lead.plataforma_origen}): "${mensajeNudge}"`);
+            // Enviar mensaje real si hay config
+            if (accessToken && phoneId && lead.telefono) {
+                try {
+                    await axios.post(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+                        messaging_product: "whatsapp",
+                        to: lead.telefono,
+                        text: { body: mensajeNudge }
+                    }, { headers: { Authorization: `Bearer ${accessToken}` } });
+                    console.log(`[CAMPAÑA] Mensaje enviado a ${lead.nombre}`);
+                } catch (err) {
+                    console.error(`Error enviando re-engagement a ${lead.nombre}:`, err);
+                }
+            } else {
+                console.log(`>>> [SIMULACIÓN] Enviando Nudge a ${lead.nombre}: "${mensajeNudge}"`);
+            }
 
             // Actualizar Lead para no spammear
             await doc.ref.update({

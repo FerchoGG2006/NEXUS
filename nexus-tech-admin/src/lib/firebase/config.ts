@@ -21,8 +21,7 @@ export const isFirebaseConfigured = () => {
         key.length > 20 &&
         !key.includes('your_') &&
         project &&
-        !project.includes('your_') &&
-        project !== 'nexus-autosales' // Opcional: Forzar modo demo si es el ID por defecto pero no hay keys reales
+        !project.includes('your_')
     );
 }
 

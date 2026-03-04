@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { getMarketingLeads, getClientesInactivos, isFirebaseConfigured } from '@/lib/firebase'
-import { Megaphone, Users, Target, Zap, Clock, TrendingUp, Filter, Plus, Mail, MessageSquare } from 'lucide-react'
+import { Megaphone, Users, Target, Zap, Clock, TrendingUp, Filter, Plus, Mail, MessageSquare, X, CheckCircle2 } from 'lucide-react'
 import { DataTable, Badge, StatsCard } from '@/components/ui'
+import { create } from '@/lib/firebase/firestore'
 
 interface ClienteLead {
     id: string
@@ -21,6 +22,15 @@ export default function MarketingPage() {
     const [leads, setLeads] = useState<ClienteLead[]>([])
     const [inactivos, setInactivos] = useState<ClienteLead[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [newCampaign, setNewCampaign] = useState({
+        nombre: '',
+        segmento: 'Todos los Clientes',
+        mensaje: '',
+        activa: true,
+        presupuesto: 0
+    })
 
 
     useEffect(() => {
@@ -104,6 +114,27 @@ export default function MarketingPage() {
         }
     ]
 
+    const handleSaveCampaign = async () => {
+        if (!newCampaign.nombre || !newCampaign.mensaje) return
+        setIsSaving(true)
+        try {
+            await create('campanas', newCampaign)
+            setIsModalOpen(false)
+            setNewCampaign({
+                nombre: '',
+                segmento: 'Todos los Clientes',
+                mensaje: '',
+                activa: true,
+                presupuesto: 0
+            })
+            loadData()
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     return (
         <div className="space-y-8 pb-12">
             {/* Header */}
@@ -119,7 +150,10 @@ export default function MarketingPage() {
                     <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-all flex items-center gap-2">
                         <Filter size={16} /> FILTRAR SEGMENTO
                     </button>
-                    <button className="btn-cyber-primary px-6 py-2 rounded-lg flex items-center gap-2">
+                    <button
+                        className="btn-cyber-primary px-6 py-2 rounded-lg flex items-center gap-2"
+                        onClick={() => setIsModalOpen(true)}
+                    >
                         <Plus size={18} /> NUEVA CAMPAÑA
                     </button>
                 </div>
@@ -224,6 +258,97 @@ export default function MarketingPage() {
                     </section>
                 </div>
             </div>
+
+            {/* Modal de Nueva Campaña */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-panel w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border-white/10">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                <Megaphone className="text-[var(--neon-purple)]" size={24} />
+                                Configurar Nueva Campaña
+                            </h2>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 hover:bg-white/10 rounded-full text-gray-400 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-xs text-gray-400 uppercase tracking-widest">Nombre de la Campaña</label>
+                                <input
+                                    type="text"
+                                    className="input-cyber w-full"
+                                    placeholder="Ej: Promo Navidad Accesorios"
+                                    value={newCampaign.nombre}
+                                    onChange={e => setNewCampaign({ ...newCampaign, nombre: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 uppercase tracking-widest">Segmento Objetivo</label>
+                                    <select
+                                        className="input-cyber w-full bg-black/40"
+                                        value={newCampaign.segmento}
+                                        onChange={e => setNewCampaign({ ...newCampaign, segmento: e.target.value })}
+                                    >
+                                        <option>Todos los Clientes</option>
+                                        <option>Usuarios iPhone 15</option>
+                                        <option>Clientes Inactivos</option>
+                                        <option>Compradores VIP</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-gray-400 uppercase tracking-widest">Presupuesto Diario</label>
+                                    <input
+                                        type="number"
+                                        className="input-cyber w-full"
+                                        placeholder="$ 0.00"
+                                        value={newCampaign.presupuesto}
+                                        onChange={e => setNewCampaign({ ...newCampaign, presupuesto: Number(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs text-gray-400 uppercase tracking-widest">Script del Mensaje (IA)</label>
+                                <textarea
+                                    className="input-cyber w-full min-h-[120px]"
+                                    placeholder="Escribe el mensaje base que la IA usará para persuadir a los clientes..."
+                                    value={newCampaign.mensaje}
+                                    onChange={e => setNewCampaign({ ...newCampaign, mensaje: e.target.value })}
+                                />
+                                <p className="text-[10px] text-gray-500 italic">La IA personalizará este mensaje para cada cliente individualmente.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-white/5 border-t border-white/5 flex gap-3">
+                            <button
+                                className="flex-1 px-4 py-3 rounded-xl border border-white/10 text-gray-400 font-bold hover:bg-white/10 transition-all"
+                                onClick={() => setIsModalOpen(false)}
+                            >
+                                CANCELAR
+                            </button>
+                            <button
+                                className="flex-[2] btn-cyber-primary px-4 py-3 rounded-xl flex items-center justify-center gap-2"
+                                onClick={handleSaveCampaign}
+                                disabled={isSaving || !newCampaign.nombre || !newCampaign.mensaje}
+                            >
+                                {isSaving ? 'GUARDANDO...' : (
+                                    <>
+                                        <CheckCircle2 size={20} />
+                                        ACTIVAR CAMPAÑA
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

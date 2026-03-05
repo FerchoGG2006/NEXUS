@@ -14,6 +14,7 @@ interface StatsCardProps {
     icon?: LucideIcon
     variant?: 'default' | 'success' | 'warning' | 'danger' | 'info'
     isLoading?: boolean
+    prefix?: string
 }
 
 const variantStyles = {
@@ -62,10 +63,11 @@ export function StatsCard({
     icon: Icon,
     variant = 'default',
     isLoading = false,
+    prefix = '$',
 }: StatsCardProps) {
     const styles = variantStyles[variant]
 
-    const formattedValue = typeof value === 'number' ? formatPrice(value, 'COP') : value
+    const formattedValue = typeof value === 'number' ? (prefix === '$' ? formatPrice(value, 'COP') : `${prefix}${value}`) : value
 
     if (isLoading) {
         return (
@@ -104,8 +106,8 @@ export function StatsCard({
                     {change && (
                         <div className="flex items-center gap-2">
                             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${change.value >= 0
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                 }`}>
                                 {change.value >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                                 {Math.abs(change.value)}%

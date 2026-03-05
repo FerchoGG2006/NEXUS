@@ -227,7 +227,7 @@ export default function ConfiguracionIAPage() {
                         <h2 className="text-xl font-bold text-white">Credenciales API</h2>
                     </div>
 
-                    <div className="space-y-6">
+                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                         <div className="space-y-1">
                             <label className="text-xs text-gray-400 uppercase tracking-wider">OpenAI API Key (GPT-4o)</label>
                             <div className="relative">
@@ -271,7 +271,7 @@ export default function ConfiguracionIAPage() {
                         <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
                             <ShieldCheck size={12} /> El sistema priorizará Gemini si la llave está configurada.
                         </p>
-                    </div>
+                    </form>
                 </section>
 
                 {/* WhatsApp Cloud API Config */}
@@ -282,7 +282,7 @@ export default function ConfiguracionIAPage() {
                         <h2 className="text-xl font-bold text-white">WhatsApp Cloud API</h2>
                     </div>
 
-                    <div className="space-y-4">
+                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                         <div className="space-y-1">
                             <label className="text-xs text-gray-400 uppercase tracking-wider">Access Token (Meta)</label>
                             <input
@@ -316,11 +316,11 @@ export default function ConfiguracionIAPage() {
                                 />
                             </div>
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-2">
+                        <p className="text-[10px] text-gray-500 mt-2 break-all">
                             Configura el Webhook en el portal de Meta Developers apuntando a: <br />
                             <code className="text-emerald-500">https://us-central1-{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/webhookMeta</code>
                         </p>
-                    </div>
+                    </form>
                 </section>
 
                 {/* Prompt del Sistema */}
@@ -519,7 +519,7 @@ export default function ConfiguracionIAPage() {
                         </div>
                     </div>
                 </section>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }

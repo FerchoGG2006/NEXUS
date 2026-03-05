@@ -167,6 +167,7 @@ export default function MarketingPage() {
                     icon={Users}
                     change={{ value: 12, label: 'vs mes anterior' }}
                     variant="info"
+                    prefix=""
                 />
                 <StatsCard
                     title="Clientes Inactivos"
@@ -174,12 +175,14 @@ export default function MarketingPage() {
                     icon={Clock}
                     change={{ value: -5, label: 'vs mes anterior' }}
                     variant="warning"
+                    prefix=""
                 />
                 <StatsCard
                     title="Campañas Activas"
                     value={2}
                     icon={Target}
                     variant="info"
+                    prefix=""
                 />
                 <StatsCard
                     title="ROI Estimado"

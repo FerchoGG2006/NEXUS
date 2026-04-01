@@ -111,6 +111,9 @@ interface ConfiguracionIA {
     notificar_whatsapp: string
     openai_api_key: string          // Encriptada
     gemini_api_key?: string          // Encriptada
+    meta_access_token?: string      // Token del cliente desde Embedded Signup
+    wa_phone_id?: string            // ID del teléfono asignado al cliente
+    meta_verify_token?: string
     knowledge_base: {               // FAQs y políticas
         pregunta: string
         respuesta: string

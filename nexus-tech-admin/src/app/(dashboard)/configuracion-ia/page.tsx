@@ -274,53 +274,54 @@ export default function ConfiguracionIAPage() {
                     </form>
                 </section>
 
-                {/* WhatsApp Cloud API Config */}
+                {/* WhatsApp Cloud API Config (SaaS - Embedded Signup) */}
                 <section className="glass-panel p-6 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
                         <MessageSquare className="text-emerald-400" size={24} />
-                        <h2 className="text-xl font-bold text-white">WhatsApp Cloud API</h2>
+                        <h2 className="text-xl font-bold text-white">Conexión de WhatsApp</h2>
                     </div>
 
-                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                        <div className="space-y-1">
-                            <label className="text-xs text-gray-400 uppercase tracking-wider">Access Token (Meta)</label>
-                            <input
-                                type="password"
-                                className="input-cyber w-full font-mono text-emerald-400"
-                                value={config.meta_access_token}
-                                onChange={(e) => updateField('meta_access_token', e.target.value)}
-                                placeholder="EAA..."
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-400 uppercase tracking-wider">Phone Number ID</label>
-                                <input
-                                    type="text"
-                                    className="input-cyber w-full"
-                                    value={config.wa_phone_id}
-                                    onChange={(e) => updateField('wa_phone_id', e.target.value)}
-                                    placeholder="109..."
-                                />
+                    <div className="space-y-6">
+                        {config.wa_phone_id && config.meta_access_token ? (
+                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                                        <MessageSquare size={20} className="text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white">WhatsApp Conectado</p>
+                                        <p className="text-xs text-gray-400">WABA ID: {config.wa_phone_id.substring(0, 5)}•••</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-bold transition-colors"
+                                    onClick={() => {
+                                        updateField('meta_access_token', '');
+                                        updateField('wa_phone_id', '');
+                                    }}
+                                >
+                                    Desconectar
+                                </button>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-400 uppercase tracking-wider">Verify Token</label>
-                                <input
-                                    type="text"
-                                    className="input-cyber w-full"
-                                    value={config.meta_verify_token}
-                                    onChange={(e) => updateField('meta_verify_token', e.target.value)}
-                                    placeholder="nexus_secure_token"
-                                />
+                        ) : (
+                            <div className="text-center space-y-4">
+                                <p className="text-sm text-gray-400">
+                                    Vincula tu número de WhatsApp Business en un solo clic para que la IA pueda responder a tus clientes automáticamente.
+                                </p>
+                                <button
+                                    onClick={() => alert("¡Facebook SDK Iniciando! (Requiere App ID configurado)")}
+                                    className="w-full sm:w-auto px-8 py-3 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-xl font-bold flex items-center justify-center gap-3 mx-auto transition-transform hover:scale-105"
+                                >
+                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                    Conectar con Meta
+                                </button>
+                                <p className="text-[10px] text-gray-500">
+                                    Conexión segura 100% gestionada por NEXUS TECH
+                                </p>
                             </div>
-                        </div>
-                        <p className="text-[10px] text-gray-500 mt-2 break-all">
-                            Configura el Webhook en el portal de Meta Developers apuntando a: <br />
-                            <code className="text-emerald-500">https://us-central1-{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/webhookMeta</code>
-                        </p>
-                    </form>
+                        )}
+                    </div>
                 </section>
 
                 {/* Prompt del Sistema */}

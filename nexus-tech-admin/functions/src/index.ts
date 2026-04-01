@@ -168,17 +168,17 @@ async function getProductDetails(searchKey: string): Promise<string> {
 // 1. WEBHOOKS PÚBLICOS (ENTRADA)
 // ============================================
 
-// Webhook Unificado para Meta (WhatsApp, Instagram, Messenger)
+// Webhook Unificado Maestro de NEXUS para WhatsApp/Meta
 export const webhookMeta = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        // A) Verificación del Token
+        // A) Verificación del Token (Nivel Maestro, Aplicación NEXUS)
         if (req.method === 'GET') {
             const mode = req.query['hub.mode'];
             const token = req.query['hub.verify_token'];
             const challenge = req.query['hub.challenge'];
 
-            const config = await getIAConfig();
-            const verifyToken = config.meta_verify_token || process.env.META_VERIFY_TOKEN || 'nexus_secure_token';
+            // Usamos un token global seguro de la aplicación principal
+            const verifyToken = process.env.META_VERIFY_TOKEN || 'nexus_master_webhook_token';
 
             if (mode === 'subscribe' && token === verifyToken) {
                 res.status(200).send(challenge);
@@ -228,19 +228,21 @@ async function handleWhatsApp(body: MetaPayload) {
             tipo = 'imagen';
             texto = message.caption || '[Imagen enviada]';
             // Nota: En producción, esto requiere ID y Token para obtener la URL real
-            // Por ahora simulamos o guardamos el ID
             url = `https://graph.facebook.com/v18.0/${message.image.id}`;
         }
 
         // Detección de Contexto (Marketplace/Ads)
         let contexto = '';
         if (message.context && message.context.id) {
-            // Si viene de un Ad o Reply
             contexto = `Reply to message: ${message.context.id}`;
         }
 
+        // Extraemos el Phone ID para Multi-Tenant SaaS
+        const tenantPhoneId = value.metadata?.phone_number_id || 'default_tenant';
+
         await db.collection('mensajes_entrantes').add({
             plataforma: 'whatsapp',
+            tenant_phone_id: tenantPhoneId, // Identificador de la tienda cliente
             mensaje_id: message.id,
             sender_id: message.from,
             sender_name: contact?.profile?.name || 'Cliente WhatsApp',
@@ -448,8 +450,23 @@ export const procesarMensajeEntrante = functions.firestore
                 timestamp: new Date().toISOString()
             });
 
-            // 3. Consultar a GPT-4o
-            const configDoc = await db.collection('configuracion_ia').doc('default').get();
+            // 3. Consultar a GPT-4o (Obtener configuración multi-tenant)
+            let configDoc;
+            if (payload.tenant_phone_id) {
+                const configQuery = await db.collection('configuracion_ia')
+                    .where('wa_phone_id', '==', payload.tenant_phone_id)
+                    .limit(1)
+                    .get();
+                if (!configQuery.empty) {
+                    configDoc = configQuery.docs[0];
+                }
+            }
+            
+            // Fallback al cliente por defecto si no enviaron tenant ID
+            if (!configDoc) {
+                configDoc = await db.collection('configuracion_ia').doc('default').get();
+            }
+
             const config = configDoc.data() || {};
 
             // Construir Prompt Avanzado

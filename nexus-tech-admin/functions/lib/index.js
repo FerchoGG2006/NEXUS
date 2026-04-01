@@ -68,6 +68,10 @@ async function getOpenAIClient() {
         throw new Error('OpenAI API Key no configurada');
     return new openai_1.default({ apiKey: config.openai_api_key });
 }
+async function getIAConfig() {
+    const configDoc = await db.collection('configuracion_ia').doc('default').get();
+    return configDoc.data() || {};
+}
 async function getGeminiResponse(prompt, history, apiKey) {
     const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -145,15 +149,17 @@ async function getProductDetails(searchKey) {
 // ============================================
 // 1. WEBHOOKS PÚBLICOS (ENTRADA)
 // ============================================
-// Webhook Unificado para Meta (WhatsApp, Instagram, Messenger)
+// Webhook Unificado Maestro de NEXUS para WhatsApp/Meta
 exports.webhookMeta = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        // A) Verificación del Token
+        // A) Verificación del Token (Nivel Maestro, Aplicación NEXUS)
         if (req.method === 'GET') {
             const mode = req.query['hub.mode'];
             const token = req.query['hub.verify_token'];
             const challenge = req.query['hub.challenge'];
-            if (mode === 'subscribe' && token === (process.env.META_VERIFY_TOKEN || 'nexus_secure_token')) {
+            // Usamos un token global seguro de la aplicación principal
+            const verifyToken = process.env.META_VERIFY_TOKEN || 'nexus_master_webhook_token';
+            if (mode === 'subscribe' && token === verifyToken) {
                 res.status(200).send(challenge);
             }
             else {
@@ -180,7 +186,7 @@ exports.webhookMeta = functions.https.onRequest((req, res) => {
     });
 });
 async function handleWhatsApp(body) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const entry = (_a = body.entry) === null || _a === void 0 ? void 0 : _a[0];
     const changes = (_b = entry === null || entry === void 0 ? void 0 : entry.changes) === null || _b === void 0 ? void 0 : _b[0];
     const value = changes === null || changes === void 0 ? void 0 : changes.value;
@@ -199,20 +205,21 @@ async function handleWhatsApp(body) {
             tipo = 'imagen';
             texto = message.caption || '[Imagen enviada]';
             // Nota: En producción, esto requiere ID y Token para obtener la URL real
-            // Por ahora simulamos o guardamos el ID
             url = `https://graph.facebook.com/v18.0/${message.image.id}`;
         }
         // Detección de Contexto (Marketplace/Ads)
         let contexto = '';
         if (message.context && message.context.id) {
-            // Si viene de un Ad o Reply
             contexto = `Reply to message: ${message.context.id}`;
         }
+        // Extraemos el Phone ID para Multi-Tenant SaaS
+        const tenantPhoneId = ((_e = value.metadata) === null || _e === void 0 ? void 0 : _e.phone_number_id) || 'default_tenant';
         await db.collection('mensajes_entrantes').add({
             plataforma: 'whatsapp',
+            tenant_phone_id: tenantPhoneId, // Identificador de la tienda cliente
             mensaje_id: message.id,
             sender_id: message.from,
-            sender_name: ((_e = contact === null || contact === void 0 ? void 0 : contact.profile) === null || _e === void 0 ? void 0 : _e.name) || 'Cliente WhatsApp',
+            sender_name: ((_f = contact === null || contact === void 0 ? void 0 : contact.profile) === null || _f === void 0 ? void 0 : _f.name) || 'Cliente WhatsApp',
             texto: texto,
             tipo: tipo,
             url: url,
@@ -397,8 +404,21 @@ exports.procesarMensajeEntrante = functions.firestore
             url: payload.url,
             timestamp: new Date().toISOString()
         });
-        // 3. Consultar a GPT-4o
-        const configDoc = await db.collection('configuracion_ia').doc('default').get();
+        // 3. Consultar a GPT-4o (Obtener configuración multi-tenant)
+        let configDoc;
+        if (payload.tenant_phone_id) {
+            const configQuery = await db.collection('configuracion_ia')
+                .where('wa_phone_id', '==', payload.tenant_phone_id)
+                .limit(1)
+                .get();
+            if (!configQuery.empty) {
+                configDoc = configQuery.docs[0];
+            }
+        }
+        // Fallback al cliente por defecto si no enviaron tenant ID
+        if (!configDoc) {
+            configDoc = await db.collection('configuracion_ia').doc('default').get();
+        }
         const config = configDoc.data() || {};
         // Construir Prompt Avanzado
         let systemPrompt = config.prompt_sistema || `Eres el vendedor virtual de ${config.nombre_tienda || 'Nexus Tech'}. 
@@ -475,21 +495,21 @@ exports.procesarMensajeEntrante = functions.firestore
             ultimo_mensaje: respuestaIA
         });
         // 5. ENVIAR RESPUESTA A LA PLATAFORMA (Output)
-        // Para integración real, descomenta y configura el Token de Acceso
         try {
             const platform = payload.plataforma;
             const recipientId = payload.sender_id;
-            if (platform === 'whatsapp') {
+            const accessToken = config.meta_access_token || process.env.META_ACCESS_TOKEN;
+            if (platform === 'whatsapp' && accessToken && config.wa_phone_id) {
                 // Llamada a WhatsApp API
-                await axios_1.default.post(`https://graph.facebook.com/v18.0/${process.env.WA_PHONE_ID}/messages`, {
+                await axios_1.default.post(`https://graph.facebook.com/v18.0/${config.wa_phone_id}/messages`, {
                     messaging_product: "whatsapp",
                     to: recipientId,
                     text: { body: respuestaIA }
-                }, { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` } });
+                }, { headers: { Authorization: `Bearer ${accessToken}` } });
             }
-            else if (platform === 'facebook' || platform === 'instagram') {
+            else if ((platform === 'facebook' || platform === 'instagram') && accessToken) {
                 // Llamada a Messenger/IG API
-                await axios_1.default.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${process.env.META_ACCESS_TOKEN}`, {
+                await axios_1.default.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
                     recipient: { id: recipientId },
                     message: { text: respuestaIA }
                 });
@@ -753,6 +773,9 @@ exports.runReengagementCampaign = functions.https.onRequest(async (req, res) => 
             .limit(10) // Límite de seguridad para MVP
             .get();
         const results = [];
+        const config = await getIAConfig();
+        const accessToken = config.meta_access_token || process.env.META_ACCESS_TOKEN;
+        const phoneId = config.wa_phone_id;
         await Promise.all(leadsQuery.docs.map(async (doc) => {
             const lead = doc.data();
             // Evitar re-enviar si ya fue contactado recientemente (campo custom)
@@ -764,9 +787,23 @@ exports.runReengagementCampaign = functions.https.onRequest(async (req, res) => 
             if (lead.contexto_inicial) {
                 mensajeNudge = `Hola ${lead.nombre}, vimos que preguntaste por un artículo en Marketplace. Aún tenemos stock disponible. ¿Te gustaría reservarlo?`;
             }
-            // [MOCK] Enviar mensaje
-            // Aquí iría la llamada real a Meta API
-            console.log(`>>> [CAMPAÑA] Enviando Nudge a ${lead.nombre} (${lead.plataforma_origen}): "${mensajeNudge}"`);
+            // Enviar mensaje real si hay config
+            if (accessToken && phoneId && lead.telefono) {
+                try {
+                    await axios_1.default.post(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+                        messaging_product: "whatsapp",
+                        to: lead.telefono,
+                        text: { body: mensajeNudge }
+                    }, { headers: { Authorization: `Bearer ${accessToken}` } });
+                    console.log(`[CAMPAÑA] Mensaje enviado a ${lead.nombre}`);
+                }
+                catch (err) {
+                    console.error(`Error enviando re-engagement a ${lead.nombre}:`, err);
+                }
+            }
+            else {
+                console.log(`>>> [SIMULACIÓN] Enviando Nudge a ${lead.nombre}: "${mensajeNudge}"`);
+            }
             // Actualizar Lead para no spammear
             await doc.ref.update({
                 last_reengagement: now.toISOString(),

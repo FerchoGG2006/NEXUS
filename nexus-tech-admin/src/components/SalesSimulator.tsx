@@ -188,7 +188,7 @@ export function SalesSimulator({ onClose }: SimulatorProps) {
                             <button
                                 className="btn btn--primary w-full mt-6"
                                 onClick={startSimulation}
-                                disabled={isThinking}
+                                disabled={isThinking || !selectedProduct}
                             >
                                 {isThinking ? 'Simulando...' : 'Enviar Mensaje de Prueba'} <Send size={16} />
                             </button>
